@@ -4,6 +4,7 @@ use clap::{App, Arg};
 
 mod day01;
 mod day02;
+mod day03;
 
 
 fn main() {
@@ -21,13 +22,18 @@ fn main() {
     match day {
         1 => {
             let input = day01::load_input();
-             println!("Part 1 Solution {:?}", day01::part1(&input));
-             println!("Part 2 Solution {:?}", day01::part2(&input));
+            println!("Part 1 Solution {:?}", day01::part1(&input));
+            println!("Part 2 Solution {:?}", day01::part2(&input));
         }
         2 => {
             let input = day02::load_input();
-             println!("Part 1 Solution {:?}", day02::part1(&input));
-             println!("Part 2 Solution {:?}", day02::part2(&input));
+            println!("Part 1 Solution {:?}", day02::part1(&input));
+            println!("Part 2 Solution {:?}", day02::part2(&input));
+        }
+        3 => {
+            let input = day03::load_input();
+            println!("Part 1 Solution {:?}", day03::part1(&input));
+            println!("Part 2 Solution {:?}", day03::part2(&input));
         }
         _ => println!("Day {} not yet implemented", day),
     }
