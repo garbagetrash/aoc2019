@@ -118,7 +118,6 @@ pub fn part2(input: &Vec<String>) -> u64 {
             let wire_len = wires.wire1_len + wires.wire2_len;
             if (wire_len as u64) < min_wire_len {
                 min_wire_len = wire_len as u64;
-                println!("{:?}", _pos);
             }
         }
     }
