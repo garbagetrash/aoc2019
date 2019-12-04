@@ -5,6 +5,7 @@ use clap::{App, Arg};
 mod day01;
 mod day02;
 mod day03;
+mod day04;
 
 
 fn main() {
@@ -34,6 +35,11 @@ fn main() {
             let input = day03::load_input();
             println!("Part 1 Solution {:?}", day03::part1(&input));
             println!("Part 2 Solution {:?}", day03::part2(&input));
+        }
+        4 => {
+            let input = day04::load_input();
+            println!("Part 1 Solution {:?}", day04::part1(&input));
+            println!("Part 2 Solution {:?}", day04::part2(&input));
         }
         _ => println!("Day {} not yet implemented", day),
     }
