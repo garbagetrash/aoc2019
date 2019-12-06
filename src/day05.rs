@@ -49,7 +49,13 @@ pub fn run(input: i64, memory: &Vec<i64>) -> i64 {
 
         match opcode {
             1 => {
-                println!("Add - {}, {}, {}, {}", input_copy[ic], input_copy[ic + 1], input_copy[ic + 2], input_copy[ic + 3]);
+                println!(
+                    "Add - {}, {}, {}, {}",
+                    input_copy[ic],
+                    input_copy[ic + 1],
+                    input_copy[ic + 2],
+                    input_copy[ic + 3]
+                );
                 // Add
                 let mut mode = 0;
                 if imarr.len() > 0 {
@@ -75,7 +81,13 @@ pub fn run(input: i64, memory: &Vec<i64>) -> i64 {
                 ic += 4;
             }
             2 => {
-                println!("Multiply - {}, {}, {}, {}", input_copy[ic], input_copy[ic + 1], input_copy[ic + 2], input_copy[ic + 3]);
+                println!(
+                    "Multiply - {}, {}, {}, {}",
+                    input_copy[ic],
+                    input_copy[ic + 1],
+                    input_copy[ic + 2],
+                    input_copy[ic + 3]
+                );
                 // Multiply
                 let mut mode = 0;
                 if imarr.len() > 0 {
@@ -120,7 +132,12 @@ pub fn run(input: i64, memory: &Vec<i64>) -> i64 {
                 ic += 2;
             }
             5 => {
-                println!("Jump if True - {}, {}, {}", input_copy[ic], input_copy[ic + 1], input_copy[ic + 2]);
+                println!(
+                    "Jump if True - {}, {}, {}",
+                    input_copy[ic],
+                    input_copy[ic + 1],
+                    input_copy[ic + 2]
+                );
                 // Jump if true
                 let mut mode = 0;
                 if imarr.len() > 0 {
@@ -145,7 +162,12 @@ pub fn run(input: i64, memory: &Vec<i64>) -> i64 {
                 }
             }
             6 => {
-                println!("Jump if False - {}, {}, {}", input_copy[ic], input_copy[ic + 1], input_copy[ic + 2]);
+                println!(
+                    "Jump if False - {}, {}, {}",
+                    input_copy[ic],
+                    input_copy[ic + 1],
+                    input_copy[ic + 2]
+                );
                 // Jump if false
                 let mut mode = 0;
                 if imarr.len() > 0 {
@@ -170,7 +192,13 @@ pub fn run(input: i64, memory: &Vec<i64>) -> i64 {
                 }
             }
             7 => {
-                println!("Less Than - {}, {}, {}, {}", input_copy[ic], input_copy[ic + 1], input_copy[ic + 2], input_copy[ic + 3]);
+                println!(
+                    "Less Than - {}, {}, {}, {}",
+                    input_copy[ic],
+                    input_copy[ic + 1],
+                    input_copy[ic + 2],
+                    input_copy[ic + 3]
+                );
                 // Less than
                 let mut mode = 0;
                 if imarr.len() > 0 {
@@ -197,7 +225,13 @@ pub fn run(input: i64, memory: &Vec<i64>) -> i64 {
                 ic += 4;
             }
             8 => {
-                println!("Equals - {}, {}, {}, {}", input_copy[ic], input_copy[ic + 1], input_copy[ic + 2], input_copy[ic + 3]);
+                println!(
+                    "Equals - {}, {}, {}, {}",
+                    input_copy[ic],
+                    input_copy[ic + 1],
+                    input_copy[ic + 2],
+                    input_copy[ic + 3]
+                );
                 // Equals
                 let mut mode = 0;
                 if imarr.len() > 0 {
@@ -213,11 +247,7 @@ pub fn run(input: i64, memory: &Vec<i64>) -> i64 {
                 let p2 = parse_param(input_copy[ic + 2], mode, &mut input_copy);
                 println!("p2: {}", p2);
 
-                mode = 0;
-                if imarr.len() > 2 {
-                    mode = imarr[imarr.len() - 3];
-                }
-                let p3 = parse_param(input_copy[ic + 3], mode, &mut input_copy) as usize;
+                let p3 = input_copy[ic + 3] as usize;
                 println!("p3: {}", p3);
 
                 if p1 == p2 {
@@ -229,7 +259,7 @@ pub fn run(input: i64, memory: &Vec<i64>) -> i64 {
             }
             99 => {
                 println!("Final output: {}", output);
-                return output
+                return output;
             }
             _ => panic!("Unknown opcode: {:?}", opcode),
         }
@@ -255,6 +285,43 @@ mod test {
 
     #[test]
     fn test_part2() {
-        assert_eq!(0, 0);
+        let input = vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8];
+        assert_eq!(run(8, &input), 1);
+        assert_eq!(run(9, &input), 0);
+        assert_eq!(run(7, &input), 0);
+
+        let input = vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8];
+        assert_eq!(run(8, &input), 0);
+        assert_eq!(run(9, &input), 0);
+        assert_eq!(run(7, &input), 1);
+
+        let input = vec![3, 3, 1108, -1, 8, 3, 4, 3, 99];
+        assert_eq!(run(8, &input), 1);
+        assert_eq!(run(9, &input), 0);
+        assert_eq!(run(7, &input), 0);
+
+        let input = vec![3, 3, 1107, -1, 8, 3, 4, 3, 99];
+        assert_eq!(run(8, &input), 0);
+        assert_eq!(run(9, &input), 0);
+        assert_eq!(run(7, &input), 1);
+
+        let input = vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9];
+        assert_eq!(run(0, &input), 0);
+        assert_eq!(run(9, &input), 1);
+        assert_eq!(run(7, &input), 1);
+
+        let input = vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1];
+        assert_eq!(run(0, &input), 0);
+        assert_eq!(run(9, &input), 1);
+        assert_eq!(run(7, &input), 1);
+
+        let input = vec![
+            3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31, 1106, 0, 36, 98, 0,
+            0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000, 1, 20, 4,
+            20, 1105, 1, 46, 98, 99,
+        ];
+        assert_eq!(run(8, &input), 1000);
+        assert_eq!(run(9, &input), 1001);
+        assert_eq!(run(7, &input), 999);
     }
 }
