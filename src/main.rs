@@ -6,15 +6,16 @@ mod day01;
 mod day02;
 mod day03;
 mod day04;
-
+mod day05;
+mod day06;
 
 fn main() {
     let matches = App::new("AOC2019")
         .arg(
             Arg::with_name("DAY")
-            .required(true)
-            .index(1)
-            .help("Day number to run"),
+                .required(true)
+                .index(1)
+                .help("Day number to run"),
         )
         .get_matches();
 
@@ -40,6 +41,16 @@ fn main() {
             let input = day04::load_input();
             println!("Part 1 Solution {:?}", day04::part1(&input));
             println!("Part 2 Solution {:?}", day04::part2(&input));
+        }
+        5 => {
+            let input = day05::load_input();
+            println!("Part 1 Solution {:?}", day05::part1(&input));
+            println!("Part 2 Solution {:?}", day05::part2(&input));
+        }
+        6 => {
+            let input = day06::load_input();
+            println!("Part 1 Solution {:?}", day06::part1(&input));
+            println!("Part 2 Solution {:?}", day06::part2(&input));
         }
         _ => println!("Day {} not yet implemented", day),
     }

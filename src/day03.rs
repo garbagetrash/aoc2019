@@ -4,9 +4,8 @@ use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 
-use std::collections::HashMap;
 use regex::Regex;
-
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Wires {
@@ -16,8 +15,14 @@ pub struct Wires {
     wire2_len: u64,
 }
 
-fn add_wires(pos: &mut (i64, i64), wire: u64, wire_len: &mut u64, dir: &str, len: u64, map: &mut HashMap::<(i64, i64), Wires>) {
-
+fn add_wires(
+    pos: &mut (i64, i64),
+    wire: u64,
+    wire_len: &mut u64,
+    dir: &str,
+    len: u64,
+    map: &mut HashMap<(i64, i64), Wires>,
+) {
     for _cnt in 0..len {
         // Increment wire
         if dir == "U" {
@@ -48,7 +53,12 @@ fn add_wires(pos: &mut (i64, i64), wire: u64, wire_len: &mut u64, dir: &str, len
                 println!("THIS WIRE DOESNT EXIST WTF MATE");
             }
         } else {
-            let mut wires = Wires { wire1_cnt: 0, wire2_cnt: 0, wire1_len: 0, wire2_len: 0 };
+            let mut wires = Wires {
+                wire1_cnt: 0,
+                wire2_cnt: 0,
+                wire1_len: 0,
+                wire2_len: 0,
+            };
             if wire == 0 {
                 wires.wire1_cnt += 1;
                 wires.wire1_len = *wire_len;
@@ -68,7 +78,7 @@ pub fn load_input() -> Vec<String> {
     f.lines().map(|x| x.unwrap()).collect()
 }
 
-pub fn parse_input(lines: &Vec<String>) -> HashMap::<(i64, i64), Wires> {
+pub fn parse_input(lines: &Vec<String>) -> HashMap<(i64, i64), Wires> {
     let mut map = HashMap::new();
     let re = Regex::new(r"^([URDL])(\d+)").unwrap();
 
@@ -94,7 +104,7 @@ pub fn parse_input(lines: &Vec<String>) -> HashMap::<(i64, i64), Wires> {
     map
 }
 
-pub fn part1(input: &Vec<String>)-> u64 {
+pub fn part1(input: &Vec<String>) -> u64 {
     let map = parse_input(&input);
 
     let mut min_dist = std::u64::MAX;
@@ -124,24 +134,35 @@ pub fn part2(input: &Vec<String>) -> u64 {
     min_wire_len
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
     fn test_part1() {
-        let input = vec![String::from("R75,D30,R83,U83,L12,D49,R71,U7,L72"), String::from("U62,R66,U55,R34,D71,R55,D58,R83")];
+        let input = vec![
+            String::from("R75,D30,R83,U83,L12,D49,R71,U7,L72"),
+            String::from("U62,R66,U55,R34,D71,R55,D58,R83"),
+        ];
         assert_eq!(part1(&input), 159);
-        let input = vec![String::from("R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51"), String::from("U98,R91,D20,R16,D67,R40,U7,R15,U6,R7")];
+        let input = vec![
+            String::from("R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51"),
+            String::from("U98,R91,D20,R16,D67,R40,U7,R15,U6,R7"),
+        ];
         assert_eq!(part1(&input), 135);
     }
 
     #[test]
     fn test_part2() {
-        let input = vec![String::from("R75,D30,R83,U83,L12,D49,R71,U7,L72"), String::from("U62,R66,U55,R34,D71,R55,D58,R83")];
+        let input = vec![
+            String::from("R75,D30,R83,U83,L12,D49,R71,U7,L72"),
+            String::from("U62,R66,U55,R34,D71,R55,D58,R83"),
+        ];
         assert_eq!(part2(&input), 610);
-        let input = vec![String::from("R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51"), String::from("U98,R91,D20,R16,D67,R40,U7,R15,U6,R7")];
+        let input = vec![
+            String::from("R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51"),
+            String::from("U98,R91,D20,R16,D67,R40,U7,R15,U6,R7"),
+        ];
         assert_eq!(part2(&input), 410);
     }
 }

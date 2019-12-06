@@ -1,6 +1,5 @@
-use std::io::prelude::*;
 use std::fs::File;
-
+use std::io::prelude::*;
 
 pub fn load_input() -> Vec<u64> {
     let mut f = File::open("inputs/02.txt").unwrap();
@@ -79,7 +78,6 @@ pub fn part2(_input: &Vec<u64>) -> u64 {
     }
     0
 }
-
 
 #[cfg(test)]
 mod test {

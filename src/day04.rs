@@ -1,14 +1,12 @@
 extern crate regex;
 
-use std::io::prelude::*;
 use std::fs::File;
+use std::io::prelude::*;
 
 use regex::Regex;
 
-
 #[derive(Debug)]
-pub struct Wires {
-}
+pub struct Wires {}
 
 pub fn load_input() -> Vec<String> {
     let mut f = File::open("inputs/04.txt").unwrap();
@@ -26,7 +24,11 @@ pub fn parse_input(input: &Vec<String>) -> (u64, u64) {
 }
 
 pub fn check1(num: u32) -> bool {
-    let digits: Vec<u32> = num.to_string().chars().map(|c| c.to_digit(10).unwrap()).collect();
+    let digits: Vec<u32> = num
+        .to_string()
+        .chars()
+        .map(|c| c.to_digit(10).unwrap())
+        .collect();
     let mut double_digit = false;
     for i in 0..5 {
         if digits[i] == digits[i + 1] {
@@ -53,7 +55,11 @@ pub fn check1(num: u32) -> bool {
 }
 
 pub fn check2(num: u32) -> bool {
-    let digits: Vec<u32> = num.to_string().chars().map(|c| c.to_digit(10).unwrap()).collect();
+    let digits: Vec<u32> = num
+        .to_string()
+        .chars()
+        .map(|c| c.to_digit(10).unwrap())
+        .collect();
     let mut double_digit = vec![];
     for i in 0..5 {
         if digits[i] == digits[i + 1] {
@@ -112,7 +118,7 @@ pub fn check2(num: u32) -> bool {
     }
 }
 
-pub fn part1(input: &Vec<String>)-> u64 {
+pub fn part1(input: &Vec<String>) -> u64 {
     let (lower, upper) = parse_input(input);
 
     let mut count = 0;

@@ -19,7 +19,9 @@ fn fuel_required_recursive(mass: u64) -> u64 {
 
 pub fn load_input() -> Vec<u64> {
     let f = BufReader::new(File::open("inputs/01.txt").unwrap());
-    f.lines().map(|x| x.unwrap().parse::<u64>().unwrap()).collect()
+    f.lines()
+        .map(|x| x.unwrap().parse::<u64>().unwrap())
+        .collect()
 }
 
 pub fn part1(input: &Vec<u64>) -> u64 {
@@ -29,7 +31,6 @@ pub fn part1(input: &Vec<u64>) -> u64 {
 pub fn part2(input: &Vec<u64>) -> u64 {
     input.iter().map(|x| fuel_required_recursive(*x)).sum()
 }
-
 
 #[cfg(test)]
 mod test {
