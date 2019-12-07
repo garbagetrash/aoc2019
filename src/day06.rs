@@ -16,7 +16,7 @@ pub fn load_input() -> Vec<String> {
 }
 
 pub fn parse_input(input: &Vec<String>) -> (HashMap<String, String>, HashMap<String, u64>) {
-    let re = Regex::new(r"^([0-9A-Z]{3})\)([0-9A-Z]{3})").unwrap();
+    let re = Regex::new(r"^([0-9A-Z]+)\)([0-9A-Z]+)").unwrap();
 
     let mut mapping = HashMap::new();
     let mut counter = HashMap::new();

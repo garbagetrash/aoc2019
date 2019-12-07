@@ -15,11 +15,11 @@ pub fn load_input() -> Vec<String> {
     vec![output]
 }
 
-pub fn parse_input(input: &Vec<String>) -> (u64, u64) {
+pub fn parse_input(input: &Vec<String>) -> (u32, u32) {
     let re = Regex::new(r"^(\d+)-(\d+)").unwrap();
     let cap = re.captures(input[0].as_str()).unwrap();
-    let lower_bound = cap[1].parse::<u64>().unwrap();
-    let upper_bound = cap[2].parse::<u64>().unwrap();
+    let lower_bound = cap[1].parse::<u32>().unwrap();
+    let upper_bound = cap[2].parse::<u32>().unwrap();
     (lower_bound, upper_bound)
 }
 
@@ -33,25 +33,24 @@ pub fn check1(num: u32) -> bool {
     for i in 0..5 {
         if digits[i] == digits[i + 1] {
             double_digit = true;
+            break;
         }
     }
 
     if double_digit {
-        let mut monotonic_increase = true;
         for i in 0..5 {
             if digits[i] > digits[i + 1] {
-                monotonic_increase = false
+                // If not monotonic increasing, return false
+                return false;
             }
         }
 
-        if monotonic_increase {
-            true
-        } else {
-            false
-        }
-    } else {
-        false
+        // If monotonic increasing and double_digit is set, return true
+        return true;
     }
+
+    // If double_digit is not set, return false
+    false
 }
 
 pub fn check2(num: u32) -> bool {
@@ -60,21 +59,17 @@ pub fn check2(num: u32) -> bool {
         .chars()
         .map(|c| c.to_digit(10).unwrap())
         .collect();
-    let mut double_digit = vec![];
+    let mut double_digit = [false; 5];
     for i in 0..5 {
         if digits[i] == digits[i + 1] {
-            double_digit.push(true);
-        } else {
-            double_digit.push(false);
+            double_digit[i] = true;
         }
     }
 
-    let mut triple_digit = vec![];
+    let mut triple_digit = [false; 4];
     for i in 0..4 {
         if digits[i] == digits[i + 1] && digits[i + 1] == digits[i + 2] {
-            triple_digit.push(true);
-        } else {
-            triple_digit.push(false);
+            triple_digit[i] = true;
         }
     }
 
@@ -101,30 +96,46 @@ pub fn check2(num: u32) -> bool {
     }
 
     if valid_double {
-        let mut monotonic_increase = true;
         for i in 0..5 {
             if digits[i] > digits[i + 1] {
-                monotonic_increase = false
+                // If not monotonic increasing, return false
+                return false;
             }
         }
-
-        if monotonic_increase {
-            true
-        } else {
-            false
-        }
-    } else {
-        false
+        // If valid_double is set and monotonic increasing return true
+        return true;
     }
+
+    // If valid_double is not set, return false
+    false
 }
 
 pub fn part1(input: &Vec<String>) -> u64 {
     let (lower, upper) = parse_input(input);
 
     let mut count = 0;
-    for num in lower..upper {
-        if check1(num as u32) {
-            count += 1;
+    for m in 0..10 {
+        for ht in m..10 {
+            for tt in ht..10 {
+                for t in tt..10 {
+                    for h in t..10 {
+                        for tens in h..10 {
+                            for o in tens..10 {
+                                let value = vec![m, ht, tt, t, h, tens, o]
+                                    .iter()
+                                    .map(|c| c.to_string())
+                                    .collect::<Vec<_>>()
+                                    .join("")
+                                    .parse::<u32>()
+                                    .unwrap();
+                                if value < upper && value > lower && check1(value) {
+                                    count += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
     count
@@ -133,9 +144,28 @@ pub fn part1(input: &Vec<String>) -> u64 {
 pub fn part2(input: &Vec<String>) -> u64 {
     let (lower, upper) = parse_input(input);
     let mut count = 0;
-    for num in lower..upper {
-        if check2(num as u32) {
-            count += 1;
+    for m in 0..10 {
+        for ht in m..10 {
+            for tt in ht..10 {
+                for t in tt..10 {
+                    for h in t..10 {
+                        for tens in h..10 {
+                            for o in tens..10 {
+                                let value = vec![m, ht, tt, t, h, tens, o]
+                                    .iter()
+                                    .map(|c| c.to_string())
+                                    .collect::<Vec<_>>()
+                                    .join("")
+                                    .parse::<u32>()
+                                    .unwrap();
+                                if value < upper && value > lower && check2(value) {
+                                    count += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
     count

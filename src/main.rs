@@ -22,6 +22,37 @@ fn main() {
     let day = matches.value_of("DAY").unwrap().parse().unwrap();
 
     match day {
+        0 => {
+            let input = day01::load_input();
+            println!("Day 1:");
+            println!("Part 1 Solution {:?}", day01::part1(&input));
+            println!("Part 2 Solution {:?}", day01::part2(&input));
+
+            let input = day02::load_input();
+            println!("Day 2:");
+            println!("Part 1 Solution {:?}", day02::part1(&input));
+            println!("Part 2 Solution {:?}", day02::part2(&input));
+
+            let input = day03::load_input();
+            println!("Day 3:");
+            println!("Part 1 Solution {:?}", day03::part1(&input));
+            println!("Part 2 Solution {:?}", day03::part2(&input));
+
+            let input = day04::load_input();
+            println!("Day 4:");
+            println!("Part 1 Solution {:?}", day04::part1(&input));
+            println!("Part 2 Solution {:?}", day04::part2(&input));
+
+            let input = day05::load_input();
+            println!("Day 5:");
+            println!("Part 1 Solution {:?}", day05::part1(&input));
+            println!("Part 2 Solution {:?}", day05::part2(&input));
+
+            let input = day06::load_input();
+            println!("Day 6:");
+            println!("Part 1 Solution {:?}", day06::part1(&input));
+            println!("Part 2 Solution {:?}", day06::part2(&input));
+        }
         1 => {
             let input = day01::load_input();
             println!("Part 1 Solution {:?}", day01::part1(&input));
