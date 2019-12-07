@@ -99,7 +99,6 @@ pub fn part2(input: &Vec<String>) -> u64 {
 
 #[cfg(test)]
 mod test {
-    use super::*;
 
     #[test]
     fn test_part1() {

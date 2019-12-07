@@ -104,7 +104,11 @@ pub fn run(input: i64, state: &ProgramState) -> (i64, ProgramState) {
                     ic += 2;
                     input_consumed = true;
                 } else {
-                    let state = ProgramState { memory: input_copy, ic: ic, done: false };
+                    let state = ProgramState {
+                        memory: input_copy,
+                        ic: ic,
+                        done: false,
+                    };
                     return (0, state);
                 }
             }
@@ -118,7 +122,11 @@ pub fn run(input: i64, state: &ProgramState) -> (i64, ProgramState) {
                 let output = value_a;
                 ic += 2;
 
-                let state = ProgramState { memory: input_copy, ic: ic, done: false };
+                let state = ProgramState {
+                    memory: input_copy,
+                    ic: ic,
+                    done: false,
+                };
                 return (output, state);
             }
             5 => {
@@ -208,7 +216,11 @@ pub fn run(input: i64, state: &ProgramState) -> (i64, ProgramState) {
                 ic += 4;
             }
             99 => {
-                let out_state = ProgramState { memory: input_copy, ic: ic, done: true };
+                let out_state = ProgramState {
+                    memory: input_copy,
+                    ic: ic,
+                    done: true,
+                };
                 return (0, out_state);
             }
             _ => panic!("Unknown opcode: {:?}", opcode),
@@ -217,37 +229,55 @@ pub fn run(input: i64, state: &ProgramState) -> (i64, ProgramState) {
 }
 
 pub fn part1(input: &Vec<i64>) -> i64 {
-
     let phase_perm = (0..5).permutations(5);
 
     let mut max_signal = std::i64::MIN;
     for phases in phase_perm {
-
-        let stateA = ProgramState { memory: input.clone(), ic: 0, done: false };
-        let stateB = ProgramState { memory: input.clone(), ic: 0, done: false };
-        let stateC = ProgramState { memory: input.clone(), ic: 0, done: false };
-        let stateD = ProgramState { memory: input.clone(), ic: 0, done: false };
-        let stateE = ProgramState { memory: input.clone(), ic: 0, done: false };
+        let state_a = ProgramState {
+            memory: input.clone(),
+            ic: 0,
+            done: false,
+        };
+        let state_b = ProgramState {
+            memory: input.clone(),
+            ic: 0,
+            done: false,
+        };
+        let state_c = ProgramState {
+            memory: input.clone(),
+            ic: 0,
+            done: false,
+        };
+        let state_d = ProgramState {
+            memory: input.clone(),
+            ic: 0,
+            done: false,
+        };
+        let state_e = ProgramState {
+            memory: input.clone(),
+            ic: 0,
+            done: false,
+        };
 
         // A
-        let (_, stateA) = run(phases[0], &stateA);
-        let (invalue, _stateA) = run(0, &stateA);
+        let (_, state_a) = run(phases[0], &state_a);
+        let (invalue, _state_a) = run(0, &state_a);
 
         // B
-        let (_, stateB) = run(phases[1], &stateB);
-        let (invalue, _stateB) = run(invalue, &stateB);
+        let (_, state_b) = run(phases[1], &state_b);
+        let (invalue, _state_b) = run(invalue, &state_b);
 
         // C
-        let (_, stateC) = run(phases[2], &stateC);
-        let (invalue, _stateC) = run(invalue, &stateC);
+        let (_, state_c) = run(phases[2], &state_c);
+        let (invalue, _state_c) = run(invalue, &state_c);
 
         // D
-        let (_, stateD) = run(phases[3], &stateD);
-        let (invalue, _stateD) = run(invalue, &stateD);
+        let (_, state_d) = run(phases[3], &state_d);
+        let (invalue, _state_d) = run(invalue, &state_d);
 
         // E
-        let (_, stateE) = run(phases[4], &stateE);
-        let (signal, _stateE) = run(invalue, &stateE);
+        let (_, state_e) = run(phases[4], &state_e);
+        let (signal, _state_e) = run(invalue, &state_e);
 
         if signal > max_signal {
             max_signal = signal;
@@ -257,56 +287,74 @@ pub fn part1(input: &Vec<i64>) -> i64 {
 }
 
 pub fn part2(input: &Vec<i64>) -> i64 {
-
     let phase_perm = (5..10).permutations(5);
     let mut max_signal = std::i64::MIN;
 
     for phases in phase_perm {
-        let stateA = ProgramState { memory: input.clone(), ic: 0, done: false };
-        let stateB = ProgramState { memory: input.clone(), ic: 0, done: false };
-        let stateC = ProgramState { memory: input.clone(), ic: 0, done: false };
-        let stateD = ProgramState { memory: input.clone(), ic: 0, done: false };
-        let stateE = ProgramState { memory: input.clone(), ic: 0, done: false };
+        let state_a = ProgramState {
+            memory: input.clone(),
+            ic: 0,
+            done: false,
+        };
+        let state_b = ProgramState {
+            memory: input.clone(),
+            ic: 0,
+            done: false,
+        };
+        let state_c = ProgramState {
+            memory: input.clone(),
+            ic: 0,
+            done: false,
+        };
+        let state_d = ProgramState {
+            memory: input.clone(),
+            ic: 0,
+            done: false,
+        };
+        let state_e = ProgramState {
+            memory: input.clone(),
+            ic: 0,
+            done: false,
+        };
 
         // Initialize
-        let (_, mut stateA) = run(phases[0], &stateA);
-        let (_, mut stateB) = run(phases[1], &stateB);
-        let (_, mut stateC) = run(phases[2], &stateC);
-        let (_, mut stateD) = run(phases[3], &stateD);
-        let (_, mut stateE) = run(phases[4], &stateE);
+        let (_, mut state_a) = run(phases[0], &state_a);
+        let (_, mut state_b) = run(phases[1], &state_b);
+        let (_, mut state_c) = run(phases[2], &state_c);
+        let (_, mut state_d) = run(phases[3], &state_d);
+        let (_, mut state_e) = run(phases[4], &state_e);
 
         let mut temp = 0;
 
         // Loop over feedback
         loop {
-
             // A
-            let (invalue, stateAa) = run(temp, &stateA);
-            if stateAa.done {
+            let (invalue, state_aa) = run(temp, &state_a);
+            if state_aa.done {
                 break;
             }
             temp = invalue;
-            stateA = stateAa;
+            state_a = state_aa;
 
             // B
-            let (invalue, stateBa) = run(temp, &stateB);
+            let (invalue, state_ba) = run(temp, &state_b);
             temp = invalue;
-            stateB = stateBa;
+            state_b = state_ba;
 
             // C
-            let (invalue, stateCa) = run(temp, &stateC);
+            let (invalue, state_ca) = run(temp, &state_c);
             temp = invalue;
-            stateC = stateCa;
+            state_c = state_ca;
 
             // D
-            let (invalue, stateDa) = run(temp, &stateD);
+            let (invalue, state_da) = run(temp, &state_d);
             temp = invalue;
-            stateD = stateDa;
+            state_d = state_da;
 
             // E
-            let (invalue, stateEa) = run(temp, &stateE);
+            let (invalue, state_ea) = run(temp, &state_e);
             temp = invalue;
-            stateE = stateEa;
+            state_e = state_ea;
         }
 
         if temp > max_signal {
@@ -322,12 +370,37 @@ mod test {
 
     #[test]
     fn test_part1() {
-        assert_eq!(0, 0);
+        let input = vec![
+            3, 15, 3, 16, 1002, 16, 10, 16, 1, 16, 15, 15, 4, 15, 99, 0, 0,
+        ];
+        assert_eq!(part1(&input), 43210);
+
+        let input = vec![
+            3, 23, 3, 24, 1002, 24, 10, 24, 1002, 23, -1, 23, 101, 5, 23, 23, 1, 24, 23, 23, 4, 23,
+            99, 0, 0,
+        ];
+        assert_eq!(part1(&input), 54321);
+
+        let input = vec![
+            3, 31, 3, 32, 1002, 32, 10, 32, 1001, 31, -2, 31, 1007, 31, 0, 33, 1002, 33, 7, 33, 1,
+            33, 31, 31, 1, 32, 31, 31, 4, 31, 99, 0, 0, 0,
+        ];
+        assert_eq!(part1(&input), 65210);
     }
 
     #[test]
     fn test_part2() {
-        let input = vec![3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5];
+        let input = vec![
+            3, 26, 1001, 26, -4, 26, 3, 27, 1002, 27, 2, 27, 1, 27, 26, 27, 4, 27, 1001, 28, -1,
+            28, 1005, 28, 6, 99, 0, 0, 5,
+        ];
         assert_eq!(part2(&input), 139629729);
+
+        let input = vec![
+            3, 52, 1001, 52, -5, 52, 3, 53, 1, 52, 56, 54, 1007, 54, 5, 55, 1005, 55, 26, 1001, 54,
+            -5, 54, 1105, 1, 12, 1, 53, 54, 53, 1008, 54, 0, 55, 1001, 55, 1, 55, 2, 53, 55, 53, 4,
+            53, 1001, 56, -1, 56, 1005, 56, 6, 99, 0, 0, 0, 0, 10,
+        ];
+        assert_eq!(part2(&input), 18216);
     }
 }
