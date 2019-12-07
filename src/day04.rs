@@ -128,7 +128,10 @@ pub fn part1(input: &Vec<String>) -> u64 {
                                     .join("")
                                     .parse::<u32>()
                                     .unwrap();
-                                if value < upper && value > lower && check1(value) {
+                                if value < upper
+                                    && value > lower
+                                    && check1(value)
+                                {
                                     count += 1;
                                 }
                             }
@@ -158,7 +161,10 @@ pub fn part2(input: &Vec<String>) -> u64 {
                                     .join("")
                                     .parse::<u32>()
                                     .unwrap();
-                                if value < upper && value > lower && check2(value) {
+                                if value < upper
+                                    && value > lower
+                                    && check2(value)
+                                {
                                     count += 1;
                                 }
                             }
