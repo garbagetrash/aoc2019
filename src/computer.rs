@@ -1,10 +1,15 @@
 extern crate regex;
 use regex::Regex;
 
+pub enum ProgramStatus {
+    Running,
+    Halted,
+}
+
 pub struct ProgramState {
     pub memory: Vec<i64>,
     pub ic: usize,
-    pub done: bool,
+    pub status: ProgramStatus,
 }
 
 pub fn parse_param(param: i64, mode: u32, memory: &mut Vec<i64>) -> i64 {
@@ -23,7 +28,7 @@ pub fn parse_param(param: i64, mode: u32, memory: &mut Vec<i64>) -> i64 {
     }
 }
 
-pub fn run(input: i64, state: &mut ProgramState) -> i64 {
+pub fn run(input: i64, state: &mut ProgramState) -> Option<i64> {
     let re = Regex::new(r"^(\d*?)(\d{1,2})$").unwrap();
 
     let mut input_consumed = false;
@@ -102,11 +107,11 @@ pub fn run(input: i64, state: &mut ProgramState) -> i64 {
                     state.ic += 2;
                     input_consumed = true;
                 } else {
-                    return 0;
+                    return None;
                 }
             }
             4 => {
-                // Load output from memory
+                // Load output from memory, return output
                 let mut mode = 0;
                 if imarr.len() > 0 {
                     mode = imarr[imarr.len() - 1];
@@ -119,7 +124,7 @@ pub fn run(input: i64, state: &mut ProgramState) -> i64 {
                 let output = value_a;
                 state.ic += 2;
 
-                return output;
+                return Some(output);
             }
             5 => {
                 // Jump if true
@@ -240,8 +245,9 @@ pub fn run(input: i64, state: &mut ProgramState) -> i64 {
                 state.ic += 4;
             }
             99 => {
-                state.done = true;
-                return 0;
+                // Halt the program
+                state.status = ProgramStatus::Halted;
+                return None;
             }
             _ => panic!("Unknown opcode: {:?}", opcode),
         }

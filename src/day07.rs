@@ -3,7 +3,7 @@ use std::io::prelude::*;
 
 use itertools::Itertools;
 
-use crate::computer::{run, ProgramState};
+use crate::computer::{run, ProgramState, ProgramStatus};
 
 pub fn load_input() -> Vec<i64> {
     let mut f = File::open("inputs/07.txt").unwrap();
@@ -29,7 +29,7 @@ pub fn part1(input: &Vec<i64>) -> i64 {
             amp_states.push(ProgramState {
                 memory: input.clone(),
                 ic: 0,
-                done: false,
+                status: ProgramStatus::Running,
             });
         }
 
@@ -37,7 +37,7 @@ pub fn part1(input: &Vec<i64>) -> i64 {
         let mut invalue = 0;
         for i in 0..5 {
             run(phases[i], &mut (amp_states[i]));
-            invalue = run(invalue, &mut (amp_states[i]));
+            invalue = run(invalue, &mut (amp_states[i])).expect("Expected an output!");
         }
 
         if invalue > max_signal {
@@ -57,7 +57,7 @@ pub fn part2(input: &Vec<i64>) -> i64 {
             amp_states.push(ProgramState {
                 memory: input.clone(),
                 ic: 0,
-                done: false,
+                status: ProgramStatus::Running,
             });
         }
 
@@ -73,11 +73,14 @@ pub fn part2(input: &Vec<i64>) -> i64 {
             let mut break_now = false;
             for i in 0..5 {
                 let output = run(temp, &mut (amp_states[i]));
-                if amp_states[i].done {
-                    break_now = true;
-                    break;
-                } else {
-                    temp = output;
+                match amp_states[i].status {
+                    ProgramStatus::Halted => {
+                        break_now = true;
+                        break;
+                    },
+                    ProgramStatus::Running => {
+                        temp = output.unwrap();
+                    },
                 }
             }
 

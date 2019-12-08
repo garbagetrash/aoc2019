@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::prelude::*;
 
-use crate::computer::{run, ProgramState};
+use crate::computer::{run, ProgramState, ProgramStatus};
 
 pub fn load_input() -> Vec<i64> {
     let mut f = File::open("inputs/05.txt").unwrap();
@@ -20,33 +20,28 @@ pub fn part1(input: &Vec<i64>) -> i64 {
     let mut state = ProgramState {
         memory: input.clone(),
         ic: 0,
-        done: false,
+        status: ProgramStatus::Running,
     };
-    let mut output = 0;
+    let mut output = Some(0);
 
-    while output == 0 {
+    while output == Some(0) {
         output = run(1, &mut state);
     }
-    output
+    output.expect("No output returned!")
 }
 
 pub fn part2(input: &Vec<i64>) -> i64 {
     let mut state = ProgramState {
         memory: input.clone(),
         ic: 0,
-        done: false,
+        status: ProgramStatus::Running,
     };
-    run(5, &mut state)
+    run(5, &mut state).expect("No output returned!")
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-
-    #[test]
-    fn test_part1() {
-        assert_eq!(0, 0);
-    }
 
     #[test]
     fn test_part2() {
@@ -55,92 +50,92 @@ mod test {
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(8, &mut state), 1);
+        assert_eq!(run(8, &mut state), Some(1));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(9, &mut state), 0);
+        assert_eq!(run(9, &mut state), Some(0));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(7, &mut state), 0);
+        assert_eq!(run(7, &mut state), Some(0));
 
         let input = vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8];
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(8, &mut state), 0);
+        assert_eq!(run(8, &mut state), Some(0));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(9, &mut state), 0);
+        assert_eq!(run(9, &mut state), Some(0));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(7, &mut state), 1);
+        assert_eq!(run(7, &mut state), Some(1));
 
         let input = vec![3, 3, 1108, -1, 8, 3, 4, 3, 99];
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(8, &mut state), 1);
+        assert_eq!(run(8, &mut state), Some(1));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(9, &mut state), 0);
+        assert_eq!(run(9, &mut state), Some(0));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(7, &mut state), 0);
+        assert_eq!(run(7, &mut state), Some(0));
 
         let input = vec![3, 3, 1107, -1, 8, 3, 4, 3, 99];
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(8, &mut state), 0);
+        assert_eq!(run(8, &mut state), Some(0));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(9, &mut state), 0);
+        assert_eq!(run(9, &mut state), Some(0));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(7, &mut state), 1);
+        assert_eq!(run(7, &mut state), Some(1));
 
         let input =
             vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9];
@@ -148,46 +143,46 @@ mod test {
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(0, &mut state), 0);
+        assert_eq!(run(0, &mut state), Some(0));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(9, &mut state), 1);
+        assert_eq!(run(9, &mut state), Some(1));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(7, &mut state), 1);
+        assert_eq!(run(7, &mut state), Some(1));
 
         let input = vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1];
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(0, &mut state), 0);
+        assert_eq!(run(0, &mut state), Some(0));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(9, &mut state), 1);
+        assert_eq!(run(9, &mut state), Some(1));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(7, &mut state), 1);
+        assert_eq!(run(7, &mut state), Some(1));
 
         let input = vec![
             3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31,
@@ -198,22 +193,22 @@ mod test {
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(8, &mut state), 1000);
+        assert_eq!(run(8, &mut state), Some(1000));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(9, &mut state), 1001);
+        assert_eq!(run(9, &mut state), Some(1001));
 
         let mut state = ProgramState {
             memory: input.clone(),
             ic: 0,
-            done: false,
+            status: ProgramStatus::Running,
         };
-        assert_eq!(run(7, &mut state), 999);
+        assert_eq!(run(7, &mut state), Some(999));
     }
 }
