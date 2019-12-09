@@ -9,23 +9,67 @@ pub enum ProgramStatus {
 pub struct ProgramState {
     pub memory: Vec<i64>,
     pub ic: usize,
+    pub relative_base: i64,
     pub status: ProgramStatus,
 }
 
-pub fn parse_param(param: i64, mode: u32, memory: &mut Vec<i64>) -> i64 {
-    match mode {
-        0 => {
-            if param < 0 {
-                panic!("Addresses can't be negative!");
-            } else {
-                memory[param as usize]
-            }
-        }
-        1 => param,
-        _ => {
-            panic!("Invalid mode!");
+impl ProgramState {
+    pub fn new(memory: &Vec<i64>) -> ProgramState {
+        let mut copy = memory.clone();
+        copy.extend_from_slice(&vec![0; 10000].as_slice());
+        ProgramState {
+            memory: copy,
+            ic: 0,
+            relative_base: 0,
+            status: ProgramStatus::Running,
         }
     }
+
+    pub fn write(&mut self, value: i64, position: usize) {
+        if position > self.memory.len() {
+            let needs = position - self.memory.len() + 1;
+            self.memory.extend_from_slice(&vec![0; needs].as_slice());
+        }
+        self.memory[position] = value;
+    }
+}
+
+pub fn param_parse(param: i64, mode: u32, state: &ProgramState) -> i64 {
+    let output = {
+        match mode {
+            0 => {
+                if param < 0 {
+                    panic!("Cannot dereference negative address: {}", param);
+                } else {
+                    state.memory[param as usize]
+                }
+            }
+            1 => param,
+            2 => {
+                if (param + state.relative_base) < 0 {
+                    panic!(
+                        "Cannot dereference negative address: {}",
+                        param + state.relative_base
+                    );
+                } else {
+                    state.memory[(param + state.relative_base) as usize]
+                }
+            }
+            _ => panic!("Unrecognized mode"),
+        }
+    };
+    output
+}
+
+pub fn addr_parse(param: i64, mode: u32, state: &ProgramState) -> usize {
+    let output = {
+        match mode {
+            0 => param as usize,
+            2 => (param + state.relative_base) as usize,
+            _ => panic!("Unrecognized mode"),
+        }
+    };
+    output
 }
 
 pub fn run(input: i64, state: &mut ProgramState) -> Option<i64> {
@@ -39,72 +83,56 @@ pub fn run(input: i64, state: &mut ProgramState) -> Option<i64> {
         let opstr = opcode.to_string();
         let cap = re.captures(&opstr[..]).unwrap();
         let opcode = cap[cap.len() - 1].parse::<i64>().unwrap();
-        let imarr: Vec<u32> =
-            cap[1].chars().map(|c| c.to_digit(10).unwrap()).collect();
+        let mut modes: Vec<u32> = cap[1]
+            .chars()
+            .map(|c| c.to_digit(10).unwrap())
+            .rev()
+            .collect();
 
         match opcode {
             1 => {
                 // Add
-                let mut mode = 0;
-                if imarr.len() > 0 {
-                    mode = imarr[imarr.len() - 1];
-                }
-                let value_a = parse_param(
-                    state.memory[state.ic + 1],
-                    mode,
-                    &mut state.memory,
-                );
+                let n_params = 3;
+                let implicit_zeros = n_params - modes.len();
+                modes.extend_from_slice(&vec![0; implicit_zeros].as_slice());
+                let params =
+                    &state.memory[state.ic + 1..state.ic + 1 + n_params];
 
-                mode = 0;
-                if imarr.len() > 1 {
-                    mode = imarr[imarr.len() - 2];
-                }
-                let value_b = parse_param(
-                    state.memory[state.ic + 2],
-                    mode,
-                    &mut state.memory,
-                );
+                let a = param_parse(params[0], modes[0], state);
+                let b = param_parse(params[1], modes[1], state);
+                let addr = addr_parse(params[2], modes[2], state);
 
-                // Destination mode must always be position
-                let c = state.memory[state.ic + 3] as usize;
-                let result = value_a + value_b;
-                state.memory[c] = result;
-                state.ic += 4;
+                state.write(a + b, addr);
+                state.ic += n_params + 1;
             }
             2 => {
                 // Multiply
-                let mut mode = 0;
-                if imarr.len() > 0 {
-                    mode = imarr[imarr.len() - 1];
-                }
-                let value_a = parse_param(
-                    state.memory[state.ic + 1],
-                    mode,
-                    &mut state.memory,
-                );
+                let n_params = 3;
+                let implicit_zeros = n_params - modes.len();
+                modes.extend_from_slice(&vec![0; implicit_zeros].as_slice());
+                let params =
+                    &state.memory[state.ic + 1..state.ic + 1 + n_params];
 
-                mode = 0;
-                if imarr.len() > 1 {
-                    mode = imarr[imarr.len() - 2];
-                }
-                let value_b = parse_param(
-                    state.memory[state.ic + 2],
-                    mode,
-                    &mut state.memory,
-                );
+                let a = param_parse(params[0], modes[0], state);
+                let b = param_parse(params[1], modes[1], state);
+                let addr = addr_parse(params[2], modes[2], state);
 
-                // Destination mode must always be position
-                let c = state.memory[state.ic + 3] as usize;
-                let result = value_a * value_b;
-                state.memory[c] = result;
-                state.ic += 4;
+                state.write(a * b, addr);
+                state.ic += n_params + 1;
             }
             3 => {
                 // Store input in memory
                 if !input_consumed {
-                    let a = state.memory[state.ic + 1] as usize;
-                    state.memory[a] = input;
-                    state.ic += 2;
+                    let n_params = 1;
+                    let implicit_zeros = n_params - modes.len();
+                    modes
+                        .extend_from_slice(&vec![0; implicit_zeros].as_slice());
+                    let param = state.memory[state.ic + 1];
+
+                    let addr = addr_parse(param, modes[0], state);
+
+                    state.write(input, addr);
+                    state.ic += n_params + 1;
                     input_consumed = true;
                 } else {
                     return None;
@@ -112,137 +140,99 @@ pub fn run(input: i64, state: &mut ProgramState) -> Option<i64> {
             }
             4 => {
                 // Load output from memory, return output
-                let mut mode = 0;
-                if imarr.len() > 0 {
-                    mode = imarr[imarr.len() - 1];
-                }
-                let value_a = parse_param(
-                    state.memory[state.ic + 1],
-                    mode,
-                    &mut state.memory,
-                );
-                let output = value_a;
-                state.ic += 2;
+                let n_params = 1;
+                let implicit_zeros = n_params - modes.len();
+                modes.extend_from_slice(&vec![0; implicit_zeros].as_slice());
+                let param = state.memory[state.ic + 1];
+
+                let output = param_parse(param, modes[0], state);
+                state.ic += n_params + 1;
 
                 return Some(output);
             }
             5 => {
                 // Jump if true
-                let mut mode = 0;
-                if imarr.len() > 0 {
-                    mode = imarr[imarr.len() - 1];
-                }
-                let p1 = parse_param(
-                    state.memory[state.ic + 1],
-                    mode,
-                    &mut state.memory,
-                );
+                let n_params = 2;
+                let implicit_zeros = n_params - modes.len();
+                modes.extend_from_slice(&vec![0; implicit_zeros].as_slice());
+                let params =
+                    &state.memory[state.ic + 1..state.ic + 1 + n_params];
 
-                mode = 0;
-                if imarr.len() > 1 {
-                    mode = imarr[imarr.len() - 2];
-                }
-                let p2 = parse_param(
-                    state.memory[state.ic + 2],
-                    mode,
-                    &mut state.memory,
-                ) as usize;
+                let p1 = param_parse(params[0], modes[0], state);
+                let p2 = param_parse(params[1], modes[1], state);
 
                 if p1 != 0 {
-                    state.ic = p2;
+                    state.ic = p2 as usize;
                 } else {
-                    state.ic += 3;
+                    state.ic += n_params + 1;
                 }
             }
             6 => {
                 // Jump if false
-                let mut mode = 0;
-                if imarr.len() > 0 {
-                    mode = imarr[imarr.len() - 1];
-                }
-                let p1 = parse_param(
-                    state.memory[state.ic + 1],
-                    mode,
-                    &mut state.memory,
-                );
+                let n_params = 2;
+                let implicit_zeros = n_params - modes.len();
+                modes.extend_from_slice(&vec![0; implicit_zeros].as_slice());
+                let params =
+                    &state.memory[state.ic + 1..state.ic + 1 + n_params];
 
-                mode = 0;
-                if imarr.len() > 1 {
-                    mode = imarr[imarr.len() - 2];
-                }
-                let p2 = parse_param(
-                    state.memory[state.ic + 2],
-                    mode,
-                    &mut state.memory,
-                ) as usize;
+                let p1 = param_parse(params[0], modes[0], state);
+                let p2 = param_parse(params[1], modes[1], state);
 
                 if p1 == 0 {
-                    state.ic = p2;
+                    state.ic = p2 as usize;
                 } else {
-                    state.ic += 3;
+                    state.ic += n_params + 1;
                 }
             }
             7 => {
                 // Less than
-                let mut mode = 0;
-                if imarr.len() > 0 {
-                    mode = imarr[imarr.len() - 1];
-                }
-                let p1 = parse_param(
-                    state.memory[state.ic + 1],
-                    mode,
-                    &mut state.memory,
-                );
+                let n_params = 3;
+                let implicit_zeros = n_params - modes.len();
+                modes.extend_from_slice(&vec![0; implicit_zeros].as_slice());
+                let params =
+                    &state.memory[state.ic + 1..state.ic + 1 + n_params];
 
-                mode = 0;
-                if imarr.len() > 1 {
-                    mode = imarr[imarr.len() - 2];
-                }
-                let p2 = parse_param(
-                    state.memory[state.ic + 2],
-                    mode,
-                    &mut state.memory,
-                );
-
-                let p3 = state.memory[state.ic + 3] as usize;
+                let p1 = param_parse(params[0], modes[0], state);
+                let p2 = param_parse(params[1], modes[1], state);
+                let addr = addr_parse(params[2], modes[2], state);
 
                 if p1 < p2 {
-                    state.memory[p3] = 1;
+                    state.memory[addr] = 1;
                 } else {
-                    state.memory[p3] = 0;
+                    state.memory[addr] = 0;
                 }
-                state.ic += 4;
+                state.ic += n_params + 1;
             }
             8 => {
                 // Equals
-                let mut mode = 0;
-                if imarr.len() > 0 {
-                    mode = imarr[imarr.len() - 1];
-                }
-                let p1 = parse_param(
-                    state.memory[state.ic + 1],
-                    mode,
-                    &mut state.memory,
-                );
+                let n_params = 3;
+                let implicit_zeros = n_params - modes.len();
+                modes.extend_from_slice(&vec![0; implicit_zeros].as_slice());
+                let params =
+                    &state.memory[state.ic + 1..state.ic + 1 + n_params];
 
-                mode = 0;
-                if imarr.len() > 1 {
-                    mode = imarr[imarr.len() - 2];
-                }
-                let p2 = parse_param(
-                    state.memory[state.ic + 2],
-                    mode,
-                    &mut state.memory,
-                );
-
-                let p3 = state.memory[state.ic + 3] as usize;
+                let p1 = param_parse(params[0], modes[0], state);
+                let p2 = param_parse(params[1], modes[1], state);
+                let addr = addr_parse(params[2], modes[2], state);
 
                 if p1 == p2 {
-                    state.memory[p3] = 1;
+                    state.memory[addr] = 1;
                 } else {
-                    state.memory[p3] = 0;
+                    state.memory[addr] = 0;
                 }
-                state.ic += 4;
+                state.ic += n_params + 1;
+            }
+            9 => {
+                // Relative base offset
+                let n_params = 1;
+                let implicit_zeros = n_params - modes.len();
+                modes.extend_from_slice(&vec![0; implicit_zeros].as_slice());
+                let param = state.memory[state.ic + 1];
+
+                let p1 = param_parse(param, modes[0], state);
+
+                state.relative_base += p1;
+                state.ic += n_params + 1;
             }
             99 => {
                 // Halt the program
