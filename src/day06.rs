@@ -10,8 +10,8 @@ use regex::Regex;
 #[derive(Debug)]
 pub struct Wires {}
 
-pub fn load_input() -> Vec<String> {
-    let f = BufReader::new(File::open("inputs/06.txt").unwrap());
+pub fn load_input(name: &str) -> Vec<String> {
+    let f = BufReader::new(File::open(name).unwrap());
     f.lines().map(|x| x.unwrap()).collect()
 }
 
@@ -101,14 +101,17 @@ pub fn part2(input: &Vec<String>) -> u64 {
 
 #[cfg(test)]
 mod test {
+    use super::*;
 
     #[test]
     fn test_part1() {
-        assert_eq!(0, 0);
+        let input = load_input("inputs/06a.txt");
+        assert_eq!(part1(&input), 42);
     }
 
     #[test]
     fn test_part2() {
-        assert_eq!(0, 0);
+        let input = load_input("inputs/06b.txt");
+        assert_eq!(part2(&input), 4);
     }
 }
