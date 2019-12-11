@@ -103,32 +103,41 @@ pub fn part1(input: &Vec<i64>) -> usize {
         let mut curr_color = 0;
         if let Some(color) = panel.get_mut(&(robot.x, robot.y)) {
             curr_color = *color;
-        } else {
-            panel.insert((robot.x, robot.y), 0);
         }
 
         // 0 = black, 1 = white
-        let new_color = run(curr_color as i64, &mut state).expect("Should be 0 or 1");
+        if let Some(new_color) = run(curr_color as i64, &mut state) {
 
-        // 0 = left, 1 = right
-        let turn_dir = run(0, &mut state).expect("Should be 0 or 1");
+            // 0 = left, 1 = right
+            if let Some(turn_dir) = run(0, &mut state) {
 
-        match state.status {
-            ProgramStatus::Halted => break,
-            _ => {
-                // Paint current square
-                if let Some(color) = panel.get_mut(&(robot.x, robot.y)) {
-                    color = new_color;
-                } else {
-                    panic!("This should have just been added to the HashMap");
+                match state.status {
+                    ProgramStatus::Halted => {
+                        println!("Halted, shouldn't see this");
+                        break;
+                    },
+                    _ => {
+                        // Paint current square
+                        if let Some(color) = panel.get_mut(&(robot.x, robot.y)) {
+                            *color = new_color as u8;
+                        } else {
+                            panel.insert((robot.x, robot.y), new_color as u8);
+                        }
+
+                        // Turn
+                        robot.turn(turn_dir as u8);
+
+                        // Move
+                        robot.move_ahead();
+                    },
                 }
-
-                // Turn
-                robot.turn(turn_dir as u8);
-
-                // Move
-                robot.move_ahead();
-            },
+            } else {
+                println!("Second break, shouldn't see this");
+                break;
+            }
+        } else {
+            println!("First break, we should see this");
+            break;
         }
     }
     panel.len()
