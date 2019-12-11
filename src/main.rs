@@ -1,5 +1,7 @@
 extern crate clap;
 
+use std::thread;
+
 use clap::{App, Arg};
 
 mod computer;
@@ -30,55 +32,76 @@ fn main() {
 
     match day {
         0 => {
-            let input = day01::load_input();
-            println!("Day 1:");
-            println!("Part 1 Solution {:?}", day01::part1(&input));
-            println!("Part 2 Solution {:?}", day01::part2(&input));
+            let mut threads = Vec::with_capacity(25);
+            threads.push(thread::spawn(|| {
+                let input = day01::load_input();
+                println!("Day 1 Part 1 Solution {:?}", day01::part1(&input));
+                println!("Day 1 Part 2 Solution {:?}", day01::part2(&input));
+            }));
 
-            let input = day02::load_input();
-            println!("Day 2:");
-            println!("Part 1 Solution {:?}", day02::part1(&input));
-            println!("Part 2 Solution {:?}", day02::part2(&input));
+            threads.push(thread::spawn(|| {
+                let input = day02::load_input();
+                println!("Day 2 Part 1 Solution {:?}", day02::part1(&input));
+                println!("Day 2 Part 2 Solution {:?}", day02::part2(&input));
+            }));
 
-            let input = day03::load_input();
-            println!("Day 3:");
-            println!("Part 1 Solution {:?}", day03::part1(&input));
-            println!("Part 2 Solution {:?}", day03::part2(&input));
+            threads.push(thread::spawn(|| {
+                let input = day03::load_input();
+                println!("Day 3 Part 1 Solution {:?}", day03::part1(&input));
+                println!("Day 3 Part 2 Solution {:?}", day03::part2(&input));
+            }));
 
-            let input = day04::load_input();
-            println!("Day 4:");
-            println!("Part 1 Solution {:?}", day04::part1(&input));
-            println!("Part 2 Solution {:?}", day04::part2(&input));
+            threads.push(thread::spawn(|| {
+                let input = day04::load_input();
+                println!("Day 4 Part 1 Solution {:?}", day04::part1(&input));
+                println!("Day 4 Part 2 Solution {:?}", day04::part2(&input));
+            }));
 
-            let input = day05::load_input();
-            println!("Day 5:");
-            println!("Part 1 Solution {:?}", day05::part1(&input));
-            println!("Part 2 Solution {:?}", day05::part2(&input));
+            threads.push(thread::spawn(|| {
+                let input = day05::load_input();
+                println!("Day 5 Part 1 Solution {:?}", day05::part1(&input));
+                println!("Day 5 Part 2 Solution {:?}", day05::part2(&input));
+            }));
 
-            let input = day06::load_input("inputs/06.txt");
-            println!("Day 6:");
-            println!("Part 1 Solution {:?}", day06::part1(&input));
-            println!("Part 2 Solution {:?}", day06::part2(&input));
+            threads.push(thread::spawn(|| {
+                let input = day06::load_input("inputs/06.txt");
+                println!("Day 6 Part 1 Solution {:?}", day06::part1(&input));
+                println!("Day 6 Part 2 Solution {:?}", day06::part2(&input));
+            }));
 
-            let input = day07::load_input();
-            println!("Day 7:");
-            println!("Part 1 Solution {:?}", day07::part1(&input));
-            println!("Part 2 Solution {:?}", day07::part2(&input));
+            threads.push(thread::spawn(|| {
+                let input = day07::load_input();
+                println!("Day 7 Part 1 Solution {:?}", day07::part1(&input));
+                println!("Day 7 Part 2 Solution {:?}", day07::part2(&input));
+            }));
 
-            let input = day08::load_input();
-            println!("Day 8:");
-            println!("Part 1 Solution {:?}", day08::part1(&input));
-            println!("Part 2 Solution {}", day08::part2(&input));
+            threads.push(thread::spawn(|| {
+                let input = day08::load_input();
+                println!("Day 8 Part 1 Solution {:?}", day08::part1(&input));
+                println!("Day 8 Part 2 Solution {}", day08::part2(&input));
+            }));
 
-            let input = day09::load_input();
-            println!("Day 9:");
-            println!("Part 1 Solution {:?}", day09::part1(&input));
-            println!("Part 2 Solution {:?}", day09::part2(&input));
+            threads.push(thread::spawn(|| {
+                let input = day09::load_input();
+                println!("Day 9 Part 1 Solution {:?}", day09::part1(&input));
+                println!("Day 9 Part 2 Solution {:?}", day09::part2(&input));
+            }));
 
-            let input = day10::load_input("inputs/10.txt");
-            println!("Day 10:");
-            println!("Part 1 Solution {:?}", day10::part1(&input));
-            println!("Part 2 Solution {:?}", day10::part2(&input));
+            threads.push(thread::spawn(|| {
+                let input = day10::load_input("inputs/10.txt");
+                println!("Day 10 Part 1 Solution {:?}", day10::part1(&input));
+                println!("Day 10 Part 2 Solution {:?}", day10::part2(&input));
+            }));
+
+            threads.push(thread::spawn(|| {
+                let input = day11::load_input();
+                println!("Day 11 Part 1 Solution {:?}", day11::part1(&input));
+                println!("Day 11 Part 2 Solution {}", day11::part2(&input));
+            }));
+
+            for t in threads {
+                t.join().unwrap();
+            }
         }
         1 => {
             let input = day01::load_input();
@@ -133,7 +156,7 @@ fn main() {
         11 => {
             let input = day11::load_input();
             println!("Part 1 Solution {:?}", day11::part1(&input));
-            println!("Part 2 Solution {:?}", day11::part2(&input));
+            println!("Part 2 Solution {}", day11::part2(&input));
         }
         _ => println!("Day {} not yet implemented", day),
     }
