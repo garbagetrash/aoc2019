@@ -1,4 +1,5 @@
 extern crate regex;
+extern crate num;
 
 use itertools::Itertools;
 use std::fs::File;
@@ -71,54 +72,6 @@ pub fn parse_input(input: &Vec<String>) -> Vec<Moon> {
     output
 }
 
-pub fn calc_gravity(moons: &Vec<Moon>) -> Vec<(i32, i32, i32)> {
-    let mut output = Vec::with_capacity(moons.len());
-    for refmoon in moons {
-        let mut gx = 0;
-        let mut gy = 0;
-        let mut gz = 0;
-        for other in moons {
-            if refmoon.x > other.x {
-                gx -= 1;
-            } else {
-                gx += 1;
-            }
-            if refmoon.y > other.y {
-                gy -= 1;
-            } else {
-                gy += 1;
-            }
-            if refmoon.z > other.z {
-                gz -= 1;
-            } else {
-                gz += 1;
-            }
-        }
-        output.push((gx, gy, gz));
-    }
-    output
-}
-
-pub fn predict_order_change(moons: &Vec<Moon>) -> u64 {
-    let ref_moons = moons.clone();
-    let idx_iter = (0..moons.len()).combinations(2);
-
-    let mut ts = Vec::with_capacity(idx_iter.count());
-    let idx_iter = (0..moons.len()).combinations(2);
-
-    let gravity = calc_gravity(moons);
-    for v in idx_iter {
-        let m0 = &ref_moons[v[0]];
-        let m1 = &ref_moons[v[1]];
-        let g0 = gravity[v[0]].0;
-        let g1 = gravity[v[1]].0;
-        let t = ((m0.x - m1.x) as f64 / (g0 - g1) as f64).sqrt() + 1.0;
-        ts.push(t as u64);
-    }
-    println!("{:?}", ts);
-    ts[0]
-}
-
 pub fn time_step(moons: &mut Vec<Moon>) {
     // Gravity
     for v in (0..moons.len()).combinations(2) {
@@ -168,7 +121,7 @@ pub fn simulate(in_moons: &Vec<Moon>, n_steps: usize) -> u64 {
 }
 
 pub fn part1(input: &Vec<String>) -> u64 {
-    let mut moons = parse_input(input);
+    let moons = parse_input(input);
     simulate(&moons, 1000)
 }
 
@@ -176,18 +129,67 @@ pub fn part2(input: &Vec<String>) -> u64 {
     let mut moons = parse_input(input);
     let ref_moons = moons.clone();
 
-    let mut i = 1;
+    let x0 = ref_moons.iter().map(|m| m.x).collect::<Vec<_>>();
+    let y0 = ref_moons.iter().map(|m| m.y).collect::<Vec<_>>();
+    let z0 = ref_moons.iter().map(|m| m.z).collect::<Vec<_>>();
+    let vx0 = ref_moons.iter().map(|m| m.vx).collect::<Vec<_>>();
+    let vy0 = ref_moons.iter().map(|m| m.vy).collect::<Vec<_>>();
+    let vz0 = ref_moons.iter().map(|m| m.vz).collect::<Vec<_>>();
+
+    let mut x_cands = vec![];
+    let mut y_cands = vec![];
+    let mut z_cands = vec![];
+    let mut vx_cands = vec![];
+    let mut vy_cands = vec![];
+    let mut vz_cands = vec![];
+
+    let mut i = 1_u64;
     loop {
-        if i % 1000000 == 0 {
-            println!("{}", i);
-        }
         time_step(&mut moons);
 
-        if moons == ref_moons {
-            return i;
+        let xs = moons.iter().map(|m| m.x).collect::<Vec<_>>();
+        let ys = moons.iter().map(|m| m.y).collect::<Vec<_>>();
+        let zs = moons.iter().map(|m| m.z).collect::<Vec<_>>();
+        let vxs = moons.iter().map(|m| m.vx).collect::<Vec<_>>();
+        let vys = moons.iter().map(|m| m.vy).collect::<Vec<_>>();
+        let vzs = moons.iter().map(|m| m.vz).collect::<Vec<_>>();
+
+        if xs == x0 {
+            x_cands.push(i);
+        }
+        if ys == y0 {
+            y_cands.push(i);
+        }
+        if zs == z0 {
+            z_cands.push(i);
+        }
+        if vxs == vx0 {
+            vx_cands.push(i);
+        }
+        if vys == vy0 {
+            vy_cands.push(i);
+        }
+        if vzs == vz0 {
+            vz_cands.push(i);
+        }
+
+        if x_cands.len() > 1 && y_cands.len() > 1 && z_cands.len() > 1 && vx_cands.len() > 1 && vy_cands.len() > 1 && vz_cands.len() > 1 {
+            break;
         }
         i += 1;
     }
+
+    use crate::day12::num::Integer;
+
+    // Find LCM of our number, keeping in mind that the very first instance of
+    // each position corresponds to just prior to the velocities zeroing out.
+    let xylcm = x_cands[1].lcm(&y_cands[1]);
+    let zvxlcm = z_cands[1].lcm(&vx_cands[1]);
+    let vyvzlcm = vy_cands[1].lcm(&vz_cands[1]);
+    let lcm0 = xylcm.lcm(&zvxlcm);
+    let output = lcm0.lcm(&vyvzlcm);
+
+    output
 }
 
 #[cfg(test)]

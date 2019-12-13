@@ -101,6 +101,18 @@ fn main() {
                 println!("Day 11 Part 2 Solution {}", day11::part2(&input));
             }));
 
+            threads.push(thread::spawn(|| {
+                let input = day12::load_input("inputs/12.txt");
+                println!("Day 12 Part 1 Solution {:?}", day12::part1(&input));
+                println!("Day 12 Part 2 Solution {:?}", day12::part2(&input));
+            }));
+
+            threads.push(thread::spawn(|| {
+                let input = day13::load_input("inputs/13.txt");
+                println!("Day 13 Part 1 Solution {:?}", day13::part1(&input));
+                println!("Day 13 Part 2 Solution {:?}", day13::part2(&input));
+            }));
+
             for t in threads {
                 t.join().unwrap();
             }
