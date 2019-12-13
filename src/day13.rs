@@ -1,15 +1,12 @@
-extern crate regex;
+extern crate ncurses;
 
-use itertools::Itertools;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::BufRead;
-use std::io::BufReader;
 
 use crate::computer::{run, ProgramState};
 
-use regex::Regex;
+use ncurses::*;
 
 pub fn load_input(name: &str) -> Vec<i64> {
     let mut f = File::open(name).unwrap();
@@ -41,7 +38,7 @@ pub fn part1(input: &Vec<i64>) -> usize {
     }
 
     let mut cntr = 0;
-    for (key, value) in screen {
+    for (_key, value) in screen {
         if value == 2 {
             cntr += 1;
         }
@@ -49,21 +46,43 @@ pub fn part1(input: &Vec<i64>) -> usize {
     cntr
 }
 
-pub fn render_screen(screen: &HashMap<(i32, i32), i32>) {
+#[allow(dead_code)]
+pub fn render_screen(screen: &HashMap<(i64, i64), i64>, score: i64) {
+    for ((x, y), id) in screen {
+        match *id {
+            0 => mvprintw(*y as i32, *x as i32, " "),
+            1 => mvprintw(*y as i32, *x as i32, "#"),
+            2 => mvprintw(*y as i32, *x as i32, "-"),
+            3 => mvprintw(*y as i32, *x as i32, "="),
+            4 => mvprintw(*y as i32, *x as i32, "o"),
+            _ => continue,
+        };
+    }
 
+    // Render score
+    mvprintw(26, 12, format!("Score: {}", score).as_str());
+
+    refresh();
 }
+
 pub fn part2(input: &Vec<i64>) -> u64 {
     let mut state = ProgramState::new(input);
     state.memory[0] = 2;
     let mut screen = HashMap::new();
     let mut score = 0;
     let mut ballx = 0;
-    let mut dir = 0;
     let mut paddlex = 0;
+
+    let render_mode = false;
+
+    if render_mode {
+        initscr();
+        curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
+    }
     loop {
         let mut inst = Vec::with_capacity(3);
 
-        for ((x, y), id) in &screen {
+        for ((x, _y), id) in &screen {
             if *id == 3 {
                 paddlex = *x;
             } else if *id == 4 {
@@ -71,12 +90,11 @@ pub fn part2(input: &Vec<i64>) -> u64 {
             }
         }
 
+        let mut dir = 0;
         if ballx > paddlex {
             dir = 1;
         } else if ballx < paddlex {
             dir = -1;
-        } else {
-            dir = 0;
         }
 
         // Grab next instruction
@@ -99,6 +117,14 @@ pub fn part2(input: &Vec<i64>) -> u64 {
         } else {
             screen.insert((inst[0], inst[1]), inst[2]);
         }
+
+        if render_mode {
+            render_screen(&screen, score);
+        }
+    }
+    if render_mode {
+        curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
+        endwin();
     }
     score as u64
 }
