@@ -200,12 +200,10 @@ mod test {
     fn test_part1() {
         let input = load_input("inputs/12a.txt");
         let moons = parse_input(&input);
-        predict_order_change(&moons);
         assert_eq!(simulate(&moons, 10), 179);
 
         let input = load_input("inputs/12b.txt");
         let moons = parse_input(&input);
-        predict_order_change(&moons);
         assert_eq!(simulate(&moons, 100), 1940);
     }
 

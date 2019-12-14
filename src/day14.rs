@@ -14,10 +14,30 @@ pub fn load_input(name: &str) -> Vec<String> {
     f.lines().map(|x| x.unwrap()).collect()
 }
 
+#[derive(Debug)]
 pub struct Rule {
     pub name: String,
-    pub num: i32,
-    pub inputs: Vec<(String, i32)>,
+    pub num: u64,
+    pub inputs: Vec<(String, u64)>,
+}
+
+impl Rule {
+    pub fn follow(&self, map: &HashMap<String, Rule>) -> u64 {
+        let mut output = 0;
+        for (el, num) in &self.inputs {
+            match el.as_ref() {
+                "ORE" => output += num,
+                _ => {
+                    let mut final_num = num / self.num;
+                    if num % self.num > 0 {
+                        final_num += 1;
+                    }
+                    output += final_num * map.get(el).unwrap().follow(map);
+                }
+            };
+        }
+        output
+    }
 }
 
 pub fn parse_input(input: &Vec<String>) -> HashMap<String, Rule> {
@@ -25,27 +45,79 @@ pub fn parse_input(input: &Vec<String>) -> HashMap<String, Rule> {
 
     let mut output  = HashMap::new();
     for line in input {
-        for group in line.split(|c| c == ',' || c == '>') {
-            let mut inputs = vec![];
-            let cap = re.captures(group).unwrap();
-            let out_num = cap[cap.len() - 2].parse::<i32>().unwrap();
-            let out_type = cap[cap.len() - 1].to_string();
+        let groups = line.split(',').collect::<Vec<_>>();
+        let last_group = groups[groups.len() - 1];
+        let equality = last_group.split('>').collect::<Vec<_>>();
+        let out_group = equality[1];
 
-            for i in (0..cap.len()) {
-                println!("{:?}", cap[i].to_string());
-            }
-            println!("");
-
-            let rule = Rule { name: out_type.clone(), num: out_num, inputs: inputs };
-            output.insert(out_type, rule);
+        let mut inputs = vec![];
+        for g in groups {
+            let cap = re.captures(g).unwrap();
+            let num = cap[1].parse::<u64>().unwrap();
+            let name = cap[2].to_string();
+            inputs.push((name.clone(), num));
         }
+        let cap = re.captures(out_group).unwrap();
+        let num = cap[1].parse::<u64>().unwrap();
+        let name = cap[2].to_string();
+
+        let rule = Rule { name: name.clone(), num: num, inputs: inputs };
+        output.insert(name, rule);
     }
     output
 }
 
-pub fn part1(input: &Vec<String>) -> usize {
+pub fn convert(rule: &Rule, stock: &mut HashMap<String, u64>) {
+    if let Some(value) = stock.get_mut(&(*rule).name) {
+        if *value < rule.num {
+            // Not enough stock, this branch corresponds to waste, but is
+            // actually allowable since we're kind of working in reverse
+            *value = 0;
+        } else {
+            *value -= rule.num;
+        }
+        if *value == 0 {
+            stock.remove(&(*rule).name);
+        }
+    } else {
+        // No stock of output, panic
+        panic!(format!("Cannot run this transaction:\n{:?}", *rule));
+    }
+    for (el, num) in &rule.inputs {
+        if let Some(value) = stock.get_mut(el) {
+            // Increase stock of el by num
+            *value += num;
+        } else {
+            stock.insert((*el).clone(), *num);
+        }
+    }
+}
+
+pub fn part1(input: &Vec<String>) -> u64 {
     let rule_map = parse_input(input);
-    0
+
+    // Keep track of transactions and current stock
+    let mut stock: HashMap<String, u64> = HashMap::new();
+    stock.insert(String::from("FUEL"), 1);
+    loop {
+        let mut siter = stock.iter();
+        let (mut el, mut num) = siter.next().unwrap();
+        if el == "ORE" {
+            if stock.len() == 1 {
+                break;
+            }
+            let temp = siter.next().unwrap();
+            el = temp.0;
+            num = temp.1;
+        }
+        // Something other than ORE
+        let rule = rule_map.get(&String::from(el)).unwrap();
+        println!("\n{:?}", rule);
+        println!("stock: {:?}", stock);
+        convert(&rule, &mut stock);
+        println!("stock: {:?}", stock);
+    }
+    *stock.iter().next().unwrap().1
 }
 
 pub fn part2(input: &Vec<String>) -> u64 {
@@ -58,7 +130,8 @@ mod test {
 
     #[test]
     fn test_part1() {
-        assert_eq!(0, 0);
+        let input = load_input("inputs/14a.txt");
+        assert_eq!(part1(&input), 31);
     }
 
     #[test]
