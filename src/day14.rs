@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
-use std::io::prelude::*;
 
 use regex::Regex;
 
@@ -84,7 +83,7 @@ pub fn part1(input: &Vec<String>) -> i64 {
     loop {
         let mut siter = stock.iter();
         let (mut el, mut num) = siter.next().unwrap();
-        while el == "ORE" || *num < 0 {
+        while el == "ORE" || *num <= 0 {
             if stock.len() == 1 {
                 done = true;
                 break;
@@ -104,16 +103,42 @@ pub fn part1(input: &Vec<String>) -> i64 {
 
         // Something other than ORE
         let rule = rule_map.get(&String::from(el)).unwrap();
-        println!("\n{:?}", rule);
-        println!("stock: {:?}", stock);
         convert(&rule, &mut stock);
-        println!("stock: {:?}", stock);
     }
     *stock.get("ORE").unwrap()
 }
 
-pub fn part2(input: &Vec<String>) -> u64 {
-    0
+pub fn part2(input: &Vec<String>) -> i64 {
+    let rule_map = parse_input(input);
+    let mut stock: HashMap<String, i64> = HashMap::new();
+    stock.insert(String::from("ORE"), 1000000000000);
+    let mut done = false;
+    loop {
+        let mut siter = stock.iter();
+        let (mut el, mut num) = siter.next().unwrap();
+        while el == "ORE" || *num <= 0 {
+            if stock.len() == 1 {
+                done = true;
+                break;
+            }
+            if let Some(temp) = siter.next() {
+                el = temp.0;
+                num = temp.1;
+            } else {
+                done = true;
+                break;
+            }
+        }
+
+        if done {
+            break;
+        }
+
+        // Something other than ORE
+        let rule = rule_map.get(&String::from(el)).unwrap();
+        convert(&rule, &mut stock);
+    }
+    *stock.get("ORE").unwrap()
 }
 
 #[cfg(test)]
@@ -127,6 +152,15 @@ mod test {
 
         let input = load_input("inputs/14b.txt");
         assert_eq!(part1(&input), 165);
+
+        let input = load_input("inputs/14c.txt");
+        assert_eq!(part1(&input), 13312);
+
+        let input = load_input("inputs/14d.txt");
+        assert_eq!(part1(&input), 180697);
+
+        let input = load_input("inputs/14e.txt");
+        assert_eq!(part1(&input), 2210736);
     }
 
     #[test]
