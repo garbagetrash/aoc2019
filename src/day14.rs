@@ -49,16 +49,7 @@ pub fn parse_input(input: &Vec<String>) -> HashMap<String, Rule> {
 
 pub fn convert(rule: &Rule, stock: &mut HashMap<String, i64>) {
     if let Some(value) = stock.get_mut(&(*rule).name) {
-        if *value < rule.num {
-            // Not enough stock, this branch corresponds to waste, but is
-            // actually allowable since we're kind of working in reverse
-            *value -= rule.num;
-        } else {
-            *value -= rule.num;
-        }
-        if *value == 0 {
-            stock.remove(&(*rule).name);
-        }
+        *value -= rule.num;
     } else {
         // No stock of output, panic
         panic!(format!("Cannot run this transaction:\n{:?}", *rule));
@@ -108,37 +99,58 @@ pub fn part1(input: &Vec<String>) -> i64 {
     *stock.get("ORE").unwrap()
 }
 
+pub fn enough_stock(rule: &Rule, stock: &HashMap<String, i64>) -> bool {
+
+    for (el, num) in &(*rule).inputs {
+        if let Some(value) = stock.get(el) {
+            if *value < *num {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+    true
+}
+
 pub fn part2(input: &Vec<String>) -> i64 {
     let rule_map = parse_input(input);
+
+    // Keep track of transactions and current stock
     let mut stock: HashMap<String, i64> = HashMap::new();
+    stock.insert(String::from("FUEL"), 1);
     stock.insert(String::from("ORE"), 1000000000000);
     let mut done = false;
     loop {
-        let mut siter = stock.iter();
-        let (mut el, mut num) = siter.next().unwrap();
-        while el == "ORE" || *num <= 0 {
-            if stock.len() == 1 {
-                done = true;
-                break;
+        if let Some(value) = stock.get_mut(&String::from("FUEL")) {
+            if *value <= 0 {
+                *value = 1;
             }
-            if let Some(temp) = siter.next() {
-                el = temp.0;
-                num = temp.1;
-            } else {
-                done = true;
+        }
+        let mut siter = stock.iter();
+        let (mut el, _num) = siter.next().unwrap();
+
+        loop {
+            // Handle something
+            let rule = rule_map.get(&String::from(el)).unwrap();
+            if enough_stock(&rule, &stock) {
+                convert(&rule, &mut stock);
                 break;
+            } else {
+                if let Some(temp) = siter.next() {
+                    el = temp.0;
+                } else {
+                    done = true;
+                    break;
+                }
             }
         }
 
         if done {
             break;
         }
-
-        // Something other than ORE
-        let rule = rule_map.get(&String::from(el)).unwrap();
-        convert(&rule, &mut stock);
     }
-    *stock.get("ORE").unwrap()
+    *stock.get("FUEL").unwrap()
 }
 
 #[cfg(test)]
