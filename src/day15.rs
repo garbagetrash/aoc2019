@@ -62,6 +62,10 @@ pub struct Droid {
     pub y: i32,
 }
 
+pub fn adjacent_tiles(pos: &(i32, i32), map: Map) -> Vec<(i32, i32)> {
+    vec![(pos.0, pos.1 - 1), (pos.0, pos.1 + 1), (pos.0 - 1, pos.1), (pos.0 + 1, pos.1)]
+}
+
 pub fn next_pos(pos: &(i32, i32), dir: &Move) -> (i32, i32) {
     let mut output = pos.clone();
     match dir {
@@ -115,6 +119,10 @@ impl Map {
         if let Some(value) = self.unexplored.get(&key) {
             self.unexplored.remove(&key);
         }
+    }
+
+    pub fn route(&self, pt1: &(i32, i32), pt2: &(i32, i32)) -> Vec<Move> {
+        vec![]
     }
 
     pub fn update_unexplored(&mut self, pos: &(i32, i32)) {
