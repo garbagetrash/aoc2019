@@ -15,29 +15,22 @@ pub fn load_input(name: &str) -> Vec<i32> {
     output
 }
 
-pub fn phase(input: &Vec<i32>) -> Vec<i32> {
+pub fn phase(input: &Vec<i32>, n_inputs: usize) -> Vec<i32> {
     let base_pattern = vec![0, 1, 0, -1];
 
-    let mut output = Vec::with_capacity(input.len());
-    for i in 0..input.len() {
+    let mut output = Vec::with_capacity(n_inputs * input.len());
+    for i in 0..n_inputs * input.len() {
         let mut result = 0;
 
-        // For each output element first build the pattern
-        let mut pattern = Vec::with_capacity(input.len());
-        let mut cntr = 1;
-        loop {
-            let mut bp_idx = cntr / (i + 1);
-            bp_idx = bp_idx % base_pattern.len();
-            pattern.push(base_pattern[bp_idx]);
-
-            cntr += 1;
-            if cntr - 1 >= input.len() {
-                break;
+        for j in 0..n_inputs * input.len() {
+            let mut bp_idx = (j + 1) / (i + 1);
+            bp_idx = bp_idx % 4;
+            let in_idx = j % input.len();
+            match base_pattern[bp_idx] {
+                1 => result += input[in_idx],
+                -1 => result -= input[in_idx],
+                _ => continue,
             }
-        }
-
-        for j in 0..input.len() {
-            result += pattern[j] * input[j];
         }
         output.push((result % 10).abs());
     }
@@ -48,13 +41,18 @@ pub fn part1(input: &Vec<i32>) -> String {
     let mut step = input.clone();
 
     for _ in 0..100 {
-        step = phase(&step);
+        step = phase(&step, 1);
     }
     step.iter().take(8).map(|c| c.to_string()).collect::<Vec<_>>().join("")
 }
 
-pub fn part2(input: &Vec<i32>) -> i64 {
-    0
+pub fn part2(input: &Vec<i32>) -> String {
+    let mut step = input.clone();
+
+    for _ in 0..100 {
+        step = phase(&step, 1);
+    }
+    step.iter().take(8).map(|c| c.to_string()).collect::<Vec<_>>().join("")
 }
 
 #[cfg(test)]
