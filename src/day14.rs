@@ -48,8 +48,12 @@ pub fn parse_input(input: &Vec<String>) -> HashMap<String, Rule> {
 }
 
 pub fn convert(rule: &Rule, stock: &mut HashMap<String, i64>) {
+    let mut mult = 1;
     if let Some(value) = stock.get_mut(&(*rule).name) {
-        *value -= rule.num;
+        if *value > rule.num {
+            mult = *value / rule.num;
+        }
+        *value -= mult * rule.num;
     } else {
         // No stock of output, panic
         panic!(format!("Cannot run this transaction:\n{:?}", *rule));
@@ -57,19 +61,17 @@ pub fn convert(rule: &Rule, stock: &mut HashMap<String, i64>) {
     for (el, num) in &rule.inputs {
         if let Some(value) = stock.get_mut(el) {
             // Increase stock of el by num
-            *value += num;
+            *value += mult * num;
         } else {
-            stock.insert((*el).clone(), *num);
+            stock.insert((*el).clone(), *num * mult);
         }
     }
 }
 
-pub fn part1(input: &Vec<String>) -> i64 {
+pub fn solve_part1(input: &Vec<String>, stock: &mut HashMap<String, i64>) {
     let rule_map = parse_input(input);
 
     // Keep track of transactions and current stock
-    let mut stock: HashMap<String, i64> = HashMap::new();
-    stock.insert(String::from("FUEL"), 1);
     let mut done = false;
     loop {
         let mut siter = stock.iter();
@@ -94,8 +96,14 @@ pub fn part1(input: &Vec<String>) -> i64 {
 
         // Something other than ORE
         let rule = rule_map.get(&String::from(el)).unwrap();
-        convert(&rule, &mut stock);
+        convert(&rule, stock);
     }
+}
+
+pub fn part1(input: &Vec<String>) -> i64 {
+    let mut stock = HashMap::new();
+    stock.insert(String::from("FUEL"), 1);
+    solve_part1(input, &mut stock);
     *stock.get("ORE").unwrap()
 }
 
@@ -103,7 +111,7 @@ pub fn enough_stock(rule: &Rule, stock: &HashMap<String, i64>) -> bool {
 
     for (el, num) in &(*rule).inputs {
         if let Some(value) = stock.get(el) {
-            if *value < *num {
+            if *value > -1 * *num {
                 return false;
             }
         } else {
@@ -114,43 +122,39 @@ pub fn enough_stock(rule: &Rule, stock: &HashMap<String, i64>) -> bool {
 }
 
 pub fn part2(input: &Vec<String>) -> i64 {
-    let rule_map = parse_input(input);
 
-    // Keep track of transactions and current stock
-    let mut stock: HashMap<String, i64> = HashMap::new();
+    // Solve once to get max ore per fuel
+    let mut stock = HashMap::new();
     stock.insert(String::from("FUEL"), 1);
-    stock.insert(String::from("ORE"), 1000000000000);
-    let mut done = false;
-    loop {
-        if let Some(value) = stock.get_mut(&String::from("FUEL")) {
-            if *value <= 0 {
-                *value = 1;
-            }
-        }
-        let mut siter = stock.iter();
-        let (mut el, _num) = siter.next().unwrap();
+    solve_part1(input, &mut stock);
+    let mut max_ore_per_fuel = 0;
+    if let Some(value) = stock.get("ORE") {
+        max_ore_per_fuel = *value;
+    }
 
-        loop {
-            // Handle something
-            let rule = rule_map.get(&String::from(el)).unwrap();
-            if enough_stock(&rule, &stock) {
-                convert(&rule, &mut stock);
+    let mut stock = HashMap::new();
+    let mut fuel_cntr = 0;
+
+    // Now we see what else we can do
+    let mut ore_remaining = 1000000000000;
+    loop {
+        // First do what we know we can all at once
+        let mut fuel = ore_remaining / max_ore_per_fuel;
+        if fuel == 0 {
+            fuel = 1;
+        }
+        stock.insert(String::from("FUEL"), fuel);
+        solve_part1(input, &mut stock);
+        if let Some(value) = stock.get("ORE") {
+            if *value >= 1000000000000 {
                 break;
             } else {
-                if let Some(temp) = siter.next() {
-                    el = temp.0;
-                } else {
-                    done = true;
-                    break;
-                }
+                fuel_cntr += fuel;
+                ore_remaining = 1000000000000 - *value;
             }
         }
-
-        if done {
-            break;
-        }
     }
-    *stock.get("FUEL").unwrap()
+    fuel_cntr
 }
 
 #[cfg(test)]
@@ -177,6 +181,13 @@ mod test {
 
     #[test]
     fn test_part2() {
-        assert_eq!(0, 0);
+        let input = load_input("inputs/14c.txt");
+        assert_eq!(part2(&input), 82892753);
+
+        let input = load_input("inputs/14d.txt");
+        assert_eq!(part2(&input), 5586022);
+
+        let input = load_input("inputs/14e.txt");
+        assert_eq!(part2(&input), 460664);
     }
 }
