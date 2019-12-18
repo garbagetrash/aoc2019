@@ -3,8 +3,6 @@ extern crate ncurses;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::BufRead;
-use std::io::BufReader;
 
 use crate::computer::{run, ProgramState};
 
@@ -60,10 +58,6 @@ pub enum Block {
 pub struct Droid {
     pub x: i32,
     pub y: i32,
-}
-
-pub fn adjacent_tiles(pos: &(i32, i32), map: Map) -> Vec<(i32, i32)> {
-    vec![(pos.0, pos.1 - 1), (pos.0, pos.1 + 1), (pos.0 - 1, pos.1), (pos.0 + 1, pos.1)]
 }
 
 pub fn next_pos(pos: &(i32, i32), dir: &Move) -> (i32, i32) {
@@ -142,6 +136,27 @@ impl Map {
         }
     }
 
+    pub fn path(&self, p1: &(i32, i32), p2: &(i32, i32)) -> Vec<Move> {
+        let mut output = vec![];
+        let mut to_explore = HashSet::new();
+        let mut explored = HashMap::new();
+
+        // Have to_explore and explored, explored keeps value of path to that
+        // tile.  to_explore is neighboring tiles of explored not in explored.
+        // For each of them find extra step to get to to_explore tile, then
+        // append that to the value of the related explore tile.  Check for
+        // multiple neighboring explored tiles, and use shortest length value
+        // tile (shortest path!).  Repeat for all tiles in to_explore, remove
+        // from to_explore as you go.  Repeat until p2 is met.
+        to_explore.insert(p1);
+        for pte in to_explore {
+            for ngp in neighboring_grid_points(p1) {
+                
+            }
+        }
+        output
+    }
+
     pub fn render(&self, droid: &Droid) {
         let mut min_x = 0;
         let mut min_y = 0;
@@ -169,6 +184,15 @@ impl Map {
         curs_set(CURSOR_VISIBILITY::CURSOR_VISIBLE);
         endwin();
     }
+}
+
+pub fn neighboring_grid_points(pt: &(i32, i32)) -> Vec<(i32, i32)> {
+    let npt = (pt.0, pt.1 - 1);
+    let spt = (pt.0, pt.1 + 1);
+    let ept = (pt.0 + 1, pt.1);
+    let wpt = (pt.0 - 1, pt.1);
+
+    vec![npt, spt, ept, wpt]
 }
 
 pub fn part1(input: &Vec<i64>) -> i64 {
