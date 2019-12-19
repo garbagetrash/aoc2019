@@ -22,7 +22,7 @@ pub fn load_input(name: &str) -> Vec<i64> {
     output
 }
 
-
+#[derive(Debug)]
 #[derive(Clone)]
 pub enum Move {
     North = 1,
@@ -88,14 +88,14 @@ impl Droid {
 
 #[derive(Debug)]
 pub struct Map {
-    pub map: HashMap<(i32, i32), Block>,
+    pub map: HashMap<(i32, i32), (Block, Vec<Move>)>,
     pub unexplored: HashSet<(i32, i32)>,
 }
 
 impl Map {
     pub fn new() -> Map {
         let mut map = HashMap::new();
-        map.insert((0, 0), Block::Open);
+        map.insert((0, 0), (Block::Open, vec![]));
 
         let mut set = HashSet::new();
         set.insert(next_pos(&(0, 0), &Move::North));
@@ -108,15 +108,19 @@ impl Map {
         }
     }
 
-    pub fn insert(&mut self, key: (i32, i32), value: Block) {
-        self.map.insert(key, value);
+    pub fn insert(&mut self, key: (i32, i32), value: (Block, Vec<Move>)) {
+        if let Some(tempvalue) = self.map.get_mut(&key) {
+            // If already present, update path if and only if shorter
+            if tempvalue.1.len() > value.1.len() {
+                tempvalue.1 = value.1.to_vec();
+            }
+        } else {
+            // If not already present, insert it
+            self.map.insert(key, value);
+        }
         if let Some(value) = self.unexplored.get(&key) {
             self.unexplored.remove(&key);
         }
-    }
-
-    pub fn route(&self, pt1: &(i32, i32), pt2: &(i32, i32)) -> Vec<Move> {
-        vec![]
     }
 
     pub fn update_unexplored(&mut self, pos: &(i32, i32)) {
@@ -136,28 +140,51 @@ impl Map {
         }
     }
 
+    // TODO: Make this actually intelligent
     pub fn path(&self, p1: &(i32, i32), p2: &(i32, i32)) -> Vec<Move> {
         let mut output = vec![];
-        let mut to_explore = HashSet::new();
-        let mut explored = HashMap::new();
 
-        // Have to_explore and explored, explored keeps value of path to that
-        // tile.  to_explore is neighboring tiles of explored not in explored.
-        // For each of them find extra step to get to to_explore tile, then
-        // append that to the value of the related explore tile.  Check for
-        // multiple neighboring explored tiles, and use shortest length value
-        // tile (shortest path!).  Repeat for all tiles in to_explore, remove
-        // from to_explore as you go.  Repeat until p2 is met.
-        to_explore.insert(p1);
-        for pte in to_explore {
-            for ngp in neighboring_grid_points(p1) {
-                
+        // First we backtrack to the origin
+        if let Some(value) = self.map.get(p1) {
+            let path = &value.1;
+            for m in path.iter().rev() {
+                match m {
+                    Move::North => output.push(Move::South),
+                    Move::South => output.push(Move::North),
+                    Move::East => output.push(Move::West),
+                    Move::West => output.push(Move::East),
+                }
+            }
+        } else {
+            panic!("How did we get here if not in map?");
+        }
+
+        // Then we forward track to p2
+        let mut fwd = vec![];
+        let mut done = false;
+        for (pt, value) in &self.map {
+            match value.0 {
+                Block::Wall => continue,
+                _ => (),
+            }
+            let candpts = neighboring_grid_points(&pt);
+            for (x, y, m) in candpts {
+                if (x, y) == *p2 {
+                    fwd.append(&mut value.1.clone());
+                    fwd.push(m);
+                    done = true;
+                    break;
+                }
+            }
+            if done {
+                break;
             }
         }
+        output.append(&mut fwd);
         output
     }
 
-    pub fn render(&self, droid: &Droid) {
+    pub fn render(&self, droid: &Droid, text: &str) {
         let mut min_x = 0;
         let mut min_y = 0;
         for (x, y) in self.map.keys() {
@@ -170,7 +197,7 @@ impl Map {
         }
         initscr();
         curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
-        for ((x, y), block) in &self.map {
+        for ((x, y), (block, _path)) in &self.map {
             match block {
                 Block::Wall => mvprintw(y - min_y, x - min_x, "#"),
                 Block::Open => mvprintw(y - min_y, x - min_x, "."),
@@ -178,6 +205,7 @@ impl Map {
             };
         }
         mvprintw(droid.y - min_y, droid.x - min_x, "D");
+        mvprintw(30, 0, text);
 
         refresh();
         getch();
@@ -186,11 +214,11 @@ impl Map {
     }
 }
 
-pub fn neighboring_grid_points(pt: &(i32, i32)) -> Vec<(i32, i32)> {
-    let npt = (pt.0, pt.1 - 1);
-    let spt = (pt.0, pt.1 + 1);
-    let ept = (pt.0 + 1, pt.1);
-    let wpt = (pt.0 - 1, pt.1);
+pub fn neighboring_grid_points(pt: &(i32, i32)) -> Vec<(i32, i32, Move)> {
+    let npt = (pt.0, pt.1 - 1, Move::North);
+    let spt = (pt.0, pt.1 + 1, Move::South);
+    let ept = (pt.0 + 1, pt.1, Move::East);
+    let wpt = (pt.0 - 1, pt.1, Move::West);
 
     vec![npt, spt, ept, wpt]
 }
@@ -200,36 +228,56 @@ pub fn part1(input: &Vec<i64>) -> i64 {
     let mut map = Map::new();
     let mut droid = Droid::new(0, 0);
 
+    // Explore the entire map
     loop {
-        let command = Move::East;
-        let status = Status::from(run(command.clone() as i64, &mut state).unwrap());
+        if map.unexplored.len() > 0 {
+            let target_pt = map.unexplored.iter().take(1).next().unwrap().clone();
 
-        match status {
-            Status::HitWall => {
-                let pos = (droid.x, droid.y);
-                droid.move_dir(&command);
-                map.insert((droid.x, droid.y), Block::Wall);
-                droid.x = pos.0;
-                droid.y = pos.1;
-                println!("Hit a wall");
-                break;
-            },
-            Status::MoveSuccess => {
-                droid.move_dir(&command);
-                map.insert((droid.x, droid.y), Block::Open);
-                map.update_unexplored(&(droid.x, droid.y));
-                println!("Move success to: ({}, {})", &droid.x, &droid.y);
-            },
-            Status::FoundOxygen => {
-                droid.move_dir(&command);
-                map.insert((droid.x, droid.y), Block::Oxygen);
-                map.update_unexplored(&(droid.x, droid.y));
-                println!("Found Oxygen: ({}, {})", droid.x, droid.y);
-            },
+            // Path to target point
+            let command_seq = &map.path(&(droid.x, droid.y), &target_pt);
+            //map.render(&droid, format!("pos: {:?}\ntarget: {:?}\nseq: {:?}", (droid.x, droid.y), target_pt, command_seq).as_str());
+            for command in command_seq {
+                if !map.unexplored.contains(&target_pt) {
+                    break;
+                }
+                let status = Status::from(run(command.clone() as i64, &mut state).unwrap());
+
+                let mut new_path = (&map.map.get(&(droid.x, droid.y)).unwrap().1).clone();
+                new_path.push(command.clone());
+
+                match status {
+                    Status::HitWall => {
+                        let pos = (droid.x, droid.y);
+                        droid.move_dir(&command);
+                        map.insert((droid.x, droid.y), (Block::Wall, new_path.to_vec()));
+                        droid.x = pos.0;
+                        droid.y = pos.1;
+                    },
+                    Status::MoveSuccess => {
+                        droid.move_dir(&command);
+                        map.insert((droid.x, droid.y), (Block::Open, new_path.to_vec()));
+                        map.update_unexplored(&(droid.x, droid.y));
+                    },
+                    Status::FoundOxygen => {
+                        droid.move_dir(&command);
+                        map.insert((droid.x, droid.y), (Block::Oxygen, new_path.to_vec()));
+                        map.update_unexplored(&(droid.x, droid.y));
+                    },
+                }
+            }
+        } else {
+            // unexplored is now size 0, done exploring!
+            break;
         }
     }
-    map.render(&droid);
-    println!("{:?}", map);
+    map.render(&droid, "");
+
+    for (pt, (block, path)) in map.map {
+        match block {
+            Block::Oxygen => return path.len() as i64,
+            _ => (),
+        }
+    }
     0
 }
 
