@@ -3,6 +3,7 @@ extern crate ncurses;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::prelude::*;
+use std::{thread, time};
 
 use crate::computer::{run, ProgramState};
 
@@ -140,48 +141,48 @@ impl Map {
         }
     }
 
-    // TODO: Make this actually intelligent
     pub fn path(&self, p1: &(i32, i32), p2: &(i32, i32)) -> Vec<Move> {
-        let mut output = vec![];
+        let mut cloud: HashMap<(i32, i32), Vec<Move>> = HashMap::new();
+        cloud.insert(*p1, vec![]);
 
-        // First we backtrack to the origin
-        if let Some(value) = self.map.get(p1) {
-            let path = &value.1;
-            for m in path.iter().rev() {
-                match m {
-                    Move::North => output.push(Move::South),
-                    Move::South => output.push(Move::North),
-                    Move::East => output.push(Move::West),
-                    Move::West => output.push(Move::East),
+        loop {
+            // Find new_points
+            let mut new_points = HashMap::new();
+            for (point, path) in &cloud {
+                for tup in neighboring_grid_points(point) {
+                    let new_pt = (tup.0, tup.1);
+                    let mut new_path = path.clone();
+                    new_path.push(tup.2);
+                    if !cloud.contains_key(&new_pt) {
+                        new_points.insert(new_pt, new_path);
+                    }
                 }
             }
-        } else {
-            panic!("How did we get here if not in map?");
-        }
 
-        // Then we forward track to p2
-        let mut fwd = vec![];
-        let mut done = false;
-        for (pt, value) in &self.map {
-            match value.0 {
-                Block::Wall => continue,
-                _ => (),
-            }
-            let candpts = neighboring_grid_points(&pt);
-            for (x, y, m) in candpts {
-                if (x, y) == *p2 {
-                    fwd.append(&mut value.1.clone());
-                    fwd.push(m);
-                    done = true;
-                    break;
+            // Insert new_points into cloud
+            for (point, path) in &new_points {
+                if let Some((tile, _)) = self.map.get(point) {
+                    match tile {
+                        Block::Wall => continue,
+                        _ => (),
+                    }
+                }
+
+                if let Some(existing_path) = cloud.get_mut(point) {
+                    if path.len() < existing_path.len() {
+                        *existing_path = (*path).clone();
+                    }
+                } else {
+                    cloud.insert(point.clone(), path.clone());
                 }
             }
-            if done {
+
+            if cloud.contains_key(p2) {
                 break;
             }
         }
-        output.append(&mut fwd);
-        output
+
+        (*cloud.get(p2).unwrap()).clone()
     }
 
     pub fn render(&self, droid: &Droid, text: &str) {
@@ -197,6 +198,7 @@ impl Map {
         }
         initscr();
         curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
+        clear();
         for ((x, y), (block, _path)) in &self.map {
             match block {
                 Block::Wall => mvprintw(y - min_y, x - min_x, "#"),
@@ -205,13 +207,17 @@ impl Map {
             };
         }
         mvprintw(droid.y - min_y, droid.x - min_x, "D");
-        mvprintw(30, 0, text);
+        mvprintw(50, 0, text);
 
         refresh();
-        getch();
+        thread::sleep(time::Duration::from_millis(33));
         curs_set(CURSOR_VISIBILITY::CURSOR_VISIBLE);
         endwin();
     }
+}
+
+pub fn dist(p1: &(i32, i32), p2: &(i32, i32)) -> i32 {
+    (p1.0 - p2.0).abs() + (p1.1 - p2.1).abs()
 }
 
 pub fn neighboring_grid_points(pt: &(i32, i32)) -> Vec<(i32, i32, Move)> {
@@ -231,7 +237,17 @@ pub fn part1(input: &Vec<i64>) -> i64 {
     // Explore the entire map
     loop {
         if map.unexplored.len() > 0 {
-            let target_pt = map.unexplored.iter().take(1).next().unwrap().clone();
+            let droid_pos = (droid.x, droid.y);
+            let mut min_dist = std::i32::MAX;
+            let mut min_pt = droid_pos;
+            for pt in &map.unexplored {
+                let new_dist = dist(&droid_pos, &pt);
+                if new_dist < min_dist {
+                    min_dist = new_dist;
+                    min_pt = *pt;
+                }
+            }
+            let target_pt = min_pt;
 
             // Path to target point
             let command_seq = &map.path(&(droid.x, droid.y), &target_pt);
