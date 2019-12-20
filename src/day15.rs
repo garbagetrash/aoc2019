@@ -261,8 +261,8 @@ impl Map {
 
     #[allow(dead_code)]
     pub fn render(&self, droid: &Droid, text: &str) {
-        let mut min_x = 0;
-        let mut min_y = 0;
+        let mut min_x = -25;
+        let mut min_y = -25;
         for (x, y) in self.map.keys() {
             if *x < min_x {
                 min_x = *x;
