@@ -3,7 +3,6 @@ extern crate regex;
 use std::fs::File;
 use std::io::prelude::*;
 
-
 pub fn load_input(name: &str) -> Vec<i32> {
     let mut f = File::open(name).unwrap();
     let mut buffer = String::new();
@@ -43,7 +42,11 @@ pub fn part1(input: &Vec<i32>) -> String {
     for _ in 0..100 {
         step = phase(&step, 1);
     }
-    step.iter().take(8).map(|c| c.to_string()).collect::<Vec<_>>().join("")
+    step.iter()
+        .take(8)
+        .map(|c| c.to_string())
+        .collect::<Vec<_>>()
+        .join("")
 }
 
 pub fn part2(input: &Vec<i32>) -> String {
@@ -52,7 +55,11 @@ pub fn part2(input: &Vec<i32>) -> String {
     for _ in 0..100 {
         step = phase(&step, 1);
     }
-    step.iter().take(8).map(|c| c.to_string()).collect::<Vec<_>>().join("")
+    step.iter()
+        .take(8)
+        .map(|c| c.to_string())
+        .collect::<Vec<_>>()
+        .join("")
 }
 
 #[cfg(test)]

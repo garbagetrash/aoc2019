@@ -9,7 +9,6 @@ use crate::computer::{run, ProgramState};
 
 use ncurses::*;
 
-
 pub fn load_input(name: &str) -> Vec<i64> {
     let mut f = File::open(name).unwrap();
     let mut buffer = String::new();
@@ -23,8 +22,7 @@ pub fn load_input(name: &str) -> Vec<i64> {
     output
 }
 
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Move {
     North = 1,
     South,
@@ -74,10 +72,7 @@ pub fn next_pos(pos: &(i32, i32), dir: &Move) -> (i32, i32) {
 
 impl Droid {
     pub fn new(x: i32, y: i32) -> Droid {
-        Droid {
-            x,
-            y,
-        }
+        Droid { x, y }
     }
 
     pub fn move_dir(&mut self, dir: &Move) {
@@ -119,7 +114,7 @@ impl Map {
             // If not already present, insert it
             self.map.insert(key, value);
         }
-        if let Some(value) = self.unexplored.get(&key) {
+        if let Some(_value) = self.unexplored.get(&key) {
             self.unexplored.remove(&key);
         }
     }
@@ -133,7 +128,7 @@ impl Map {
         new_dirs.push(next_pos(pos, &Move::East));
 
         for new in new_dirs {
-            if let Some(value) = self.map.get(&new) {
+            if let Some(_value) = self.map.get(&new) {
                 continue;
             } else {
                 self.unexplored.insert(new);
@@ -185,6 +180,86 @@ impl Map {
         (*cloud.get(p2).unwrap()).clone()
     }
 
+    pub fn expand_oxygen(&mut self) -> i64 {
+        let mut oxypt = (0, 0);
+        for (point, (tile, _path)) in &self.map {
+            match tile {
+                Block::Oxygen => {
+                    oxypt = point.clone();
+                }
+                _ => continue,
+            }
+        }
+
+        let mut cloud: HashMap<(i32, i32), Vec<Move>> = HashMap::new();
+        cloud.insert(oxypt, vec![]);
+
+        let mut t = 1;
+        loop {
+            // Find new_points
+            let mut new_points = HashMap::new();
+            for (point, path) in &cloud {
+                for tup in neighboring_grid_points(point) {
+                    let new_pt = (tup.0, tup.1);
+                    let mut new_path = path.clone();
+                    new_path.push(tup.2);
+                    if !cloud.contains_key(&new_pt) {
+                        new_points.insert(new_pt, new_path);
+                    }
+                }
+            }
+
+            // Insert new_points into cloud
+            for (point, path) in &new_points {
+                if let Some((tile, _)) = self.map.get(point) {
+                    match tile {
+                        Block::Wall => continue,
+                        _ => (),
+                    }
+                }
+
+                if let Some(existing_path) = cloud.get_mut(point) {
+                    if path.len() < existing_path.len() {
+                        *existing_path = (*path).clone();
+                    }
+                } else {
+                    cloud.insert(point.clone(), path.clone());
+                }
+            }
+
+            /*
+            // Only needed for pretty render
+            for (point, _) in &cloud {
+                if let Some(tup) = self.map.get_mut(point) {
+                    tup.0 = Block::Oxygen;
+                }
+            }
+            self.render(&Droid::new(0, 0), format!("t: {}", t).as_str());
+            */
+
+            // See if every open point in map is in cloud yet
+            let mut done = true;
+            for (point, (tile, _path)) in &self.map {
+                match tile {
+                    Block::Open => {
+                        if !cloud.contains_key(point) {
+                            done = false;
+                        }
+                    }
+                    _ => (),
+                }
+            }
+
+            if done {
+                break;
+            }
+
+            t += 1;
+        }
+        t
+    }
+
+    #[allow(dead_code)]
     pub fn render(&self, droid: &Droid, text: &str) {
         let mut min_x = 0;
         let mut min_y = 0;
@@ -229,7 +304,7 @@ pub fn neighboring_grid_points(pt: &(i32, i32)) -> Vec<(i32, i32, Move)> {
     vec![npt, spt, ept, wpt]
 }
 
-pub fn part1(input: &Vec<i64>) -> i64 {
+pub fn explore_entire_map(input: &Vec<i64>) -> (Map, Droid, ProgramState) {
     let mut state = ProgramState::new(input);
     let mut map = Map::new();
     let mut droid = Droid::new(0, 0);
@@ -256,29 +331,41 @@ pub fn part1(input: &Vec<i64>) -> i64 {
                 if !map.unexplored.contains(&target_pt) {
                     break;
                 }
-                let status = Status::from(run(command.clone() as i64, &mut state).unwrap());
+                let status = Status::from(
+                    run(command.clone() as i64, &mut state).unwrap(),
+                );
 
-                let mut new_path = (&map.map.get(&(droid.x, droid.y)).unwrap().1).clone();
+                let mut new_path =
+                    (&map.map.get(&(droid.x, droid.y)).unwrap().1).clone();
                 new_path.push(command.clone());
 
                 match status {
                     Status::HitWall => {
                         let pos = (droid.x, droid.y);
                         droid.move_dir(&command);
-                        map.insert((droid.x, droid.y), (Block::Wall, new_path.to_vec()));
+                        map.insert(
+                            (droid.x, droid.y),
+                            (Block::Wall, new_path.to_vec()),
+                        );
                         droid.x = pos.0;
                         droid.y = pos.1;
-                    },
+                    }
                     Status::MoveSuccess => {
                         droid.move_dir(&command);
-                        map.insert((droid.x, droid.y), (Block::Open, new_path.to_vec()));
+                        map.insert(
+                            (droid.x, droid.y),
+                            (Block::Open, new_path.to_vec()),
+                        );
                         map.update_unexplored(&(droid.x, droid.y));
-                    },
+                    }
                     Status::FoundOxygen => {
                         droid.move_dir(&command);
-                        map.insert((droid.x, droid.y), (Block::Oxygen, new_path.to_vec()));
+                        map.insert(
+                            (droid.x, droid.y),
+                            (Block::Oxygen, new_path.to_vec()),
+                        );
                         map.update_unexplored(&(droid.x, droid.y));
-                    },
+                    }
                 }
             }
         } else {
@@ -286,9 +373,13 @@ pub fn part1(input: &Vec<i64>) -> i64 {
             break;
         }
     }
-    map.render(&droid, "");
+    (map, droid, state)
+}
 
-    for (pt, (block, path)) in map.map {
+pub fn part1(input: &Vec<i64>) -> i64 {
+    let (map, _droid, _state) = explore_entire_map(input);
+
+    for (_pt, (block, path)) in map.map {
         match block {
             Block::Oxygen => return path.len() as i64,
             _ => (),
@@ -298,21 +389,6 @@ pub fn part1(input: &Vec<i64>) -> i64 {
 }
 
 pub fn part2(input: &Vec<i64>) -> i64 {
-    let mut state = ProgramState::new(input);
-    0
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_part1() {
-        assert_eq!(0, 0);
-    }
-
-    #[test]
-    fn test_part2() {
-        assert_eq!(0, 0);
-    }
+    let (mut map, _droid, _state) = explore_entire_map(input);
+    map.expand_oxygen()
 }

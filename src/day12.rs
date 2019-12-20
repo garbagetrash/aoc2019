@@ -1,5 +1,5 @@
-extern crate regex;
 extern crate num;
+extern crate regex;
 
 use itertools::Itertools;
 use std::fs::File;
@@ -13,10 +13,7 @@ pub fn load_input(name: &str) -> Vec<String> {
     f.lines().map(|x| x.unwrap()).collect()
 }
 
-#[derive(Clone)]
-#[derive(Debug)]
-#[derive(PartialEq)]
-#[derive(Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Moon {
     pub x: i32,
     pub y: i32,
@@ -173,7 +170,13 @@ pub fn part2(input: &Vec<String>) -> u64 {
             vz_cands.push(i);
         }
 
-        if x_cands.len() > 1 && y_cands.len() > 1 && z_cands.len() > 1 && vx_cands.len() > 1 && vy_cands.len() > 1 && vz_cands.len() > 1 {
+        if x_cands.len() > 1
+            && y_cands.len() > 1
+            && z_cands.len() > 1
+            && vx_cands.len() > 1
+            && vy_cands.len() > 1
+            && vz_cands.len() > 1
+        {
             break;
         }
         i += 1;

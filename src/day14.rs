@@ -7,7 +7,6 @@ use std::io::BufReader;
 
 use regex::Regex;
 
-
 pub fn load_input(name: &str) -> Vec<String> {
     let f = BufReader::new(File::open(name).unwrap());
     f.lines().map(|x| x.unwrap()).collect()
@@ -23,7 +22,7 @@ pub struct Rule {
 pub fn parse_input(input: &Vec<String>) -> HashMap<String, Rule> {
     let re = Regex::new(r"(\d+) ([A-Z]+)").unwrap();
 
-    let mut output  = HashMap::new();
+    let mut output = HashMap::new();
     for line in input {
         let groups = line.split(',').collect::<Vec<_>>();
         let last_group = groups[groups.len() - 1];
@@ -41,7 +40,11 @@ pub fn parse_input(input: &Vec<String>) -> HashMap<String, Rule> {
         let num = cap[1].parse::<i64>().unwrap();
         let name = cap[2].to_string();
 
-        let rule = Rule { name: name.clone(), num: num, inputs: inputs };
+        let rule = Rule {
+            name: name.clone(),
+            num: num,
+            inputs: inputs,
+        };
         output.insert(name, rule);
     }
     output
@@ -107,22 +110,7 @@ pub fn part1(input: &Vec<String>) -> i64 {
     *stock.get("ORE").unwrap()
 }
 
-pub fn enough_stock(rule: &Rule, stock: &HashMap<String, i64>) -> bool {
-
-    for (el, num) in &(*rule).inputs {
-        if let Some(value) = stock.get(el) {
-            if *value > -1 * *num {
-                return false;
-            }
-        } else {
-            return false;
-        }
-    }
-    true
-}
-
 pub fn part2(input: &Vec<String>) -> i64 {
-
     // Solve once to get max ore per fuel
     let mut stock = HashMap::new();
     stock.insert(String::from("FUEL"), 1);
