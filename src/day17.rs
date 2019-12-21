@@ -6,6 +6,8 @@ use std::io::prelude::*;
 
 use crate::computer::{run, ProgramState};
 
+use ncurses::*;
+
 pub fn load_input(name: &str) -> Vec<i64> {
     let mut f = File::open(name).unwrap();
     let mut buffer = String::new();
@@ -27,6 +29,37 @@ pub enum Tile {
     RobotDown,
     RobotLeft,
     RobotRight,
+}
+
+#[allow(dead_code)]
+pub fn render(map: &HashMap<(i32, i32), Tile>) {
+
+    let mut min_x = 0;
+    let mut min_y = 0;
+
+    initscr();
+    curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
+    clear();
+    for ((x, y), tile) in map {
+        if *x < min_x {
+            min_x = *x;
+        }
+        if *y < min_y {
+            min_y = *y;
+        }
+        match *tile {
+            Tile::Scaffold => mvprintw(*y - min_y, *x - min_x, "#"),
+            Tile::Open => mvprintw(*y - min_y, x - min_x, "."),
+            Tile::RobotUp => mvprintw(*y - min_y, x - min_x, "^"),
+            Tile::RobotDown => mvprintw(*y - min_y, x - min_x, "v"),
+            Tile::RobotLeft => mvprintw(*y - min_y, x - min_x, "<"),
+            Tile::RobotRight => mvprintw(*y - min_y, x - min_x, ">"),
+        };
+    }
+    refresh();
+    getch();
+    curs_set(CURSOR_VISIBILITY::CURSOR_VISIBLE);
+    endwin();
 }
 
 pub fn parse_input(input: &Vec<i64>) -> HashMap<(i32, i32), Tile> {
@@ -157,6 +190,8 @@ pub fn part1(input: &Vec<i64>) -> i64 {
     ap_sum
 }
 
-pub fn part2(_input: &Vec<i64>) -> i64 {
+pub fn part2(input: &Vec<i64>) -> i64 {
+    let map = parse_input(input);
+    render(&map);
     0
 }
