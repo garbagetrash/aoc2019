@@ -1,13 +1,10 @@
 extern crate ncurses;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
-use std::{thread, time};
 
 use crate::computer::{run, ProgramState};
-
-use ncurses::*;
 
 pub fn load_input(name: &str) -> Vec<i64> {
     let mut f = File::open(name).unwrap();
@@ -42,34 +39,41 @@ pub fn parse_input(input: &Vec<i64>) -> HashMap<(i32, i32), Tile> {
     loop {
         if let Some(out) = run(0, &mut state) {
             match out {
-                10 => { // LF
+                10 => {
+                    // LF
                     y += 1;
                     x = 0;
-                },
-                35 => { // #
+                }
+                35 => {
+                    // #
                     output.insert((x, y), Tile::Scaffold);
                     x += 1;
-                },
-                46 => { // .
+                }
+                46 => {
+                    // .
                     output.insert((x, y), Tile::Open);
                     x += 1;
-                },
-                94 => { // ^
+                }
+                94 => {
+                    // ^
                     output.insert((x, y), Tile::RobotUp);
                     x += 1;
-                },
-                118 => { // v
+                }
+                118 => {
+                    // v
                     output.insert((x, y), Tile::RobotDown);
                     x += 1;
-                },
-                60 => { // <
+                }
+                60 => {
+                    // <
                     output.insert((x, y), Tile::RobotLeft);
                     x += 1;
-                },
-                62 => { // >
+                }
+                62 => {
+                    // >
                     output.insert((x, y), Tile::RobotRight);
                     x += 1;
-                },
+                }
                 _ => panic!("Output {} unrecognized"),
             }
         } else {
@@ -80,7 +84,10 @@ pub fn parse_input(input: &Vec<i64>) -> HashMap<(i32, i32), Tile> {
     output
 }
 
-pub fn is_intersection(pt: &(i32, i32), map: &HashMap<(i32, i32), Tile>) -> bool {
+pub fn is_intersection(
+    pt: &(i32, i32),
+    map: &HashMap<(i32, i32), Tile>,
+) -> bool {
     let x = pt.0;
     let y = pt.1;
 
@@ -150,6 +157,6 @@ pub fn part1(input: &Vec<i64>) -> i64 {
     ap_sum
 }
 
-pub fn part2(input: &Vec<i64>) -> i64 {
+pub fn part2(_input: &Vec<i64>) -> i64 {
     0
 }
