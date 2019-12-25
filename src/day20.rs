@@ -6,11 +6,6 @@ use std::io::prelude::*;
 
 use ncurses::*;
 
-/* Current issues:
- * - portals Hashmap points to tile of other portal, not it's output tile.
- * - How to keep water filling finder from doubling back on itself through
- *   portals?
- */
 
 #[derive(Debug)]
 pub enum Tile {
@@ -81,7 +76,7 @@ pub fn render(map: &HashMap<(i32, i32), Tile>) {
 }
 
 pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> HashMap<(i32, i32), (i32, i32)> {
-    let mut portals: HashMap<String, Vec<(i32, i32)>> = HashMap::new();
+    let mut portals: HashMap<String, Vec<((i32, i32), (i32, i32))>> = HashMap::new();
     for (pt, tile) in input {
         match tile {
             Tile::Portal(c) => {
@@ -99,9 +94,9 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> HashMap<(i32, i32), (i
                                     Tile::Floor => {
                                         let s = vec![(*c).clone(), (*c2).clone()].join("");
                                         if let Some(v) = portals.get_mut(&s) {
-                                            v.push(right_pt);
+                                            v.push((right_pt, rrpt));
                                         } else {
-                                            portals.insert(s, vec![right_pt]);
+                                            portals.insert(s, vec![(right_pt, rrpt)]);
                                         }
                                     },
                                     _ => (),
@@ -114,9 +109,9 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> HashMap<(i32, i32), (i
                                     Tile::Floor => {
                                         let s = vec![(*c).clone(), (*c2).clone()].join("");
                                         if let Some(v) = portals.get_mut(&s) {
-                                            v.push(*pt);
+                                            v.push((*pt, lrpt));
                                         } else {
-                                            portals.insert(s, vec![*pt]);
+                                            portals.insert(s, vec![(*pt, lrpt)]);
                                         }
                                     },
                                     _ => (),
@@ -140,9 +135,9 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> HashMap<(i32, i32), (i
                                     Tile::Floor => {
                                         let s = vec![(*c).clone(), (*c2).clone()].join("");
                                         if let Some(v) = portals.get_mut(&s) {
-                                            v.push(lower_pt);
+                                            v.push((lower_pt, llpt));
                                         } else {
-                                            portals.insert(s, vec![lower_pt]);
+                                            portals.insert(s, vec![(lower_pt, llpt)]);
                                         }
                                     },
                                     _ => (),
@@ -157,9 +152,9 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> HashMap<(i32, i32), (i
                                     Tile::Floor => {
                                         let s = vec![(*c).clone(), (*c2).clone()].join("");
                                         if let Some(v) = portals.get_mut(&s) {
-                                            v.push(*pt);
+                                            v.push((*pt, ulpt));
                                         } else {
-                                            portals.insert(s, vec![*pt]);
+                                            portals.insert(s, vec![(*pt, ulpt)]);
                                         }
                                     },
                                     _ => (),
@@ -180,8 +175,8 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> HashMap<(i32, i32), (i
         if name != "AA" && name != "ZZ" {
             let pt1 = v[0];
             let pt2 = v[1];
-            output.insert(pt1, pt2);
-            output.insert(pt2, pt1);
+            output.insert(pt1.0, pt2.1);
+            output.insert(pt2.0, pt1.1);
         }
     }
 
