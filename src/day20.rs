@@ -7,11 +7,44 @@ use std::io::prelude::*;
 use ncurses::*;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Tile {
+    Start,
+    End,
     Floor,
     Wall,
     Portal(String),
+}
+
+#[derive(Debug, Clone)]
+pub enum Move {
+    North = 1,
+    South,
+    West,
+    East,
+}
+
+pub fn neighboring_grid_points(pt: &(i32, i32), portals: &HashMap<(i32, i32), (i32, i32)>) -> Vec<(i32, i32, Move)> {
+    let mut npt = (pt.0, pt.1 - 1, Move::North);
+    let mut spt = (pt.0, pt.1 + 1, Move::South);
+    let mut ept = (pt.0 + 1, pt.1, Move::East);
+    let mut wpt = (pt.0 - 1, pt.1, Move::West);
+
+    // Handle portals
+    if let Some(portal_pt) = portals.get(&(npt.0, npt.1)) {
+        npt = (portal_pt.0, portal_pt.1, npt.2);
+    }
+    if let Some(portal_pt) = portals.get(&(spt.0, spt.1)) {
+        spt = (portal_pt.0, portal_pt.1, spt.2);
+    }
+    if let Some(portal_pt) = portals.get(&(ept.0, ept.1)) {
+        ept = (portal_pt.0, portal_pt.1, ept.2);
+    }
+    if let Some(portal_pt) = portals.get(&(wpt.0, wpt.1)) {
+        wpt = (portal_pt.0, portal_pt.1, wpt.2);
+    }
+
+    vec![npt, spt, ept, wpt]
 }
 
 pub fn load_input(name: &str) -> HashMap<(i32, i32), Tile> {
@@ -63,6 +96,8 @@ pub fn render(map: &HashMap<(i32, i32), Tile>) {
     clear();
     for ((x, y), tile) in map {
         match tile {
+            Tile::Start => mvprintw(y - min_y, x - min_x, "."),
+            Tile::End => mvprintw(y - min_y, x - min_x, "."),
             Tile::Floor => mvprintw(y - min_y, x - min_x, "."),
             Tile::Wall => mvprintw(y - min_y, x - min_x, "#"),
             Tile::Portal(c) => mvprintw(y - min_y, x - min_x, &c.to_string()),
@@ -75,7 +110,114 @@ pub fn render(map: &HashMap<(i32, i32), Tile>) {
     endwin();
 }
 
-pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> HashMap<(i32, i32), (i32, i32)> {
+pub fn path(p1: &(i32, i32), p2: &(i32, i32), map: &HashMap<(i32, i32), (Tile, Vec<Move>)>, portals: &HashMap<(i32, i32), (i32, i32)>) -> Vec<Move> {
+    let mut cloud: HashMap<(i32, i32), Vec<Move>> = HashMap::new();
+    cloud.insert(*p1, vec![]);
+
+    loop {
+        // Find new_points
+        let mut new_points = HashMap::new();
+        for (point, path) in &cloud {
+            for tup in neighboring_grid_points(point, portals) {
+                let new_pt = (tup.0, tup.1);
+                let mut new_path = path.clone();
+                new_path.push(tup.2);
+                if !cloud.contains_key(&new_pt) {
+                    new_points.insert(new_pt, new_path);
+                }
+            }
+        }
+
+        // Insert new_points into cloud
+        for (point, path) in &new_points {
+            if let Some((tile, _)) = map.get(point) {
+                match tile {
+                    Tile::Wall => continue,
+                    _ => (),
+                }
+            }
+
+            if let Some(existing_path) = cloud.get_mut(point) {
+                if path.len() < existing_path.len() {
+                    *existing_path = (*path).clone();
+                }
+            } else {
+                cloud.insert(point.clone(), path.clone());
+            }
+        }
+
+        if cloud.contains_key(p2) {
+            break;
+        }
+    }
+
+    (*cloud.get(p2).unwrap()).clone()
+}
+
+pub fn water_filling(map: &HashMap<(i32, i32), Tile>, portals: &HashMap<(i32, i32), (i32, i32)>, start_pt: &(i32, i32), end_pt: &(i32, i32)) -> i64 {
+
+    let mut cloud: HashMap<(i32, i32), Vec<Move>> = HashMap::new();
+    cloud.insert(*start_pt, vec![]);
+
+    let mut t = 1;
+    loop {
+        // Find new_points
+        let mut new_points = HashMap::new();
+        for (point, path) in &cloud {
+            for tup in neighboring_grid_points(point, portals) {
+                let new_pt = (tup.0, tup.1);
+                let mut new_path = path.clone();
+                new_path.push(tup.2);
+                if !cloud.contains_key(&new_pt) {
+                    new_points.insert(new_pt, new_path);
+                }
+            }
+        }
+
+        // Insert new_points into cloud
+        for (point, path) in &new_points {
+            if let Some(tile) = &map.get(point) {
+                match tile {
+                    Tile::Wall => continue,
+                    _ => (),
+                }
+            }
+
+            if let Some(existing_path) = cloud.get_mut(point) {
+                if path.len() < existing_path.len() {
+                    *existing_path = (*path).clone();
+                }
+            } else {
+                cloud.insert(point.clone(), path.clone());
+            }
+        }
+
+        /*
+        // Only needed for pretty render
+        for (point, _) in &cloud {
+            if let Some(tup) = map.get_mut(point) {
+                tup.0 = Tile::Oxygen;
+            }
+        }
+        render(map);
+        */
+
+        // See if end_pt is in cloud yet
+        let mut done = false;
+        if !cloud.contains_key(end_pt) {
+            done = true;
+        }
+
+        if done {
+            break;
+        }
+
+        t += 1;
+    }
+    t
+}
+
+pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> ((i32, i32), (i32, i32), HashMap<(i32, i32), (i32, i32)>) {
     let mut portals: HashMap<String, Vec<((i32, i32), (i32, i32))>> = HashMap::new();
     for (pt, tile) in input {
         match tile {
@@ -170,9 +312,15 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> HashMap<(i32, i32), (i
     }
     println!("{:?}", portals);
 
+    let mut start_pt = (0, 0);
+    let mut end_pt = (0, 0);
     let mut output = HashMap::new();
     for (name, v) in portals {
-        if name != "AA" && name != "ZZ" {
+        if name == "AA" {
+            start_pt = v[0].1;
+        } else if name == "ZZ" {
+            end_pt = v[0].1;
+        } else {
             let pt1 = v[0];
             let pt2 = v[1];
             output.insert(pt1.0, pt2.1);
@@ -180,13 +328,17 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> HashMap<(i32, i32), (i
         }
     }
 
-    output
+    (start_pt, end_pt, output)
 }
 
 pub fn part1(input: &HashMap<(i32, i32), Tile>) -> i64 {
     render(input);
-    let portals = find_portals(input);
+    let (start_pt, end_pt, portals) = find_portals(input);
+    let out = water_filling(input, &portals, &start_pt, &end_pt);
+    println!("start: {:?}", start_pt);
+    println!("end: {:?}", end_pt);
     println!("portals: {:?}", portals);
+    println!("out: {:?}", out);
     0
 }
 
