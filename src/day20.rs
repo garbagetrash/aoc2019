@@ -3,6 +3,9 @@ extern crate ncurses;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
+use std::{thread, time};
+use std::thread::JoinHandle;
+use std::sync::mpsc;
 
 use ncurses::*;
 
@@ -12,6 +15,7 @@ pub enum Tile {
     Start,
     End,
     Floor,
+    Water,
     Wall,
     Portal(String),
 }
@@ -79,6 +83,36 @@ pub fn load_input(name: &str) -> HashMap<(i32, i32), Tile> {
     output
 }
 
+pub fn start_render_thread() -> (mpsc::Sender<Option<HashMap<(i32, i32), Tile>>>, JoinHandle<()>) {
+    let (tx, rx) = mpsc::channel();
+
+    let handle: thread::JoinHandle<()> = thread::spawn(move || {
+
+        initscr();
+        start_color();
+        init_pair(1, COLOR_WHITE, COLOR_BLACK);
+        init_pair(2, COLOR_BLUE, COLOR_BLACK);
+        init_pair(3, COLOR_GRAY, COLOR_BLACK);
+
+        curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
+
+        loop {
+            if let Some(map) = rx.recv().unwrap() {
+                render(&map);
+            } else {
+                break;
+            }
+        }
+
+        clear();
+        curs_set(CURSOR_VISIBILITY::CURSOR_VISIBLE);
+        refresh();
+        endwin();
+    });
+
+    (tx, handle)
+}
+
 #[allow(dead_code)]
 pub fn render(map: &HashMap<(i32, i32), Tile>) {
     let mut min_x = 0;
@@ -91,23 +125,27 @@ pub fn render(map: &HashMap<(i32, i32), Tile>) {
             min_y = *y;
         }
     }
-    initscr();
-    curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
-    clear();
+
     for ((x, y), tile) in map {
+        attron(COLOR_PAIR(1));
         match tile {
-            Tile::Start => mvprintw(y - min_y, x - min_x, "."),
-            Tile::End => mvprintw(y - min_y, x - min_x, "."),
+            Tile::Start => mvprintw(y - min_y, x - min_x, "S"),
+            Tile::End => mvprintw(y - min_y, x - min_x, "E"),
             Tile::Floor => mvprintw(y - min_y, x - min_x, "."),
+            Tile::Water => {
+                attron(COLOR_PAIR(2));
+                let out = mvprintw(y - min_y, x - min_x, "~");
+                attroff(COLOR_PAIR(2));
+                out
+            },
             Tile::Wall => mvprintw(y - min_y, x - min_x, "#"),
             Tile::Portal(c) => mvprintw(y - min_y, x - min_x, &c.to_string()),
         };
+        attroff(COLOR_PAIR(1));
     }
 
     refresh();
-    getch();
-    curs_set(CURSOR_VISIBILITY::CURSOR_VISIBLE);
-    endwin();
+    thread::sleep(time::Duration::from_millis(33));
 }
 
 pub fn path(p1: &(i32, i32), p2: &(i32, i32), map: &HashMap<(i32, i32), (Tile, Vec<Move>)>, portals: &HashMap<(i32, i32), (i32, i32)>) -> Vec<Move> {
@@ -154,7 +192,9 @@ pub fn path(p1: &(i32, i32), p2: &(i32, i32), map: &HashMap<(i32, i32), (Tile, V
     (*cloud.get(p2).unwrap()).clone()
 }
 
-pub fn water_filling(map: &HashMap<(i32, i32), Tile>, portals: &HashMap<(i32, i32), (i32, i32)>, start_pt: &(i32, i32), end_pt: &(i32, i32)) -> i64 {
+pub fn water_filling(map: &mut HashMap<(i32, i32), Tile>, portals: &HashMap<(i32, i32), (i32, i32)>, start_pt: &(i32, i32), end_pt: &(i32, i32)) -> i64 {
+
+    let (tx, handle) = start_render_thread();
 
     let mut cloud: HashMap<(i32, i32), Vec<Move>> = HashMap::new();
     cloud.insert(*start_pt, vec![]);
@@ -179,9 +219,12 @@ pub fn water_filling(map: &HashMap<(i32, i32), Tile>, portals: &HashMap<(i32, i3
             if let Some(tile) = &map.get(point) {
                 match tile {
                     Tile::Wall => continue,
+                    Tile::Portal(_) => continue,
                     _ => (),
                 }
             }
+
+            map.insert(*point, Tile::Water);
 
             if let Some(existing_path) = cloud.get_mut(point) {
                 if path.len() < existing_path.len() {
@@ -192,23 +235,17 @@ pub fn water_filling(map: &HashMap<(i32, i32), Tile>, portals: &HashMap<(i32, i3
             }
         }
 
-        /*
-        // Only needed for pretty render
-        for (point, _) in &cloud {
-            if let Some(tup) = map.get_mut(point) {
-                tup.0 = Tile::Oxygen;
-            }
-        }
-        render(map);
-        */
+        tx.send(Some(map.clone()));
 
         // See if end_pt is in cloud yet
         let mut done = false;
-        if !cloud.contains_key(end_pt) {
+        if cloud.contains_key(end_pt) {
             done = true;
         }
 
         if done {
+            tx.send(None);
+            handle.join();
             break;
         }
 
@@ -310,7 +347,6 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> ((i32, i32), (i32, i32
             _ => (),
         }
     }
-    println!("{:?}", portals);
 
     let mut start_pt = (0, 0);
     let mut end_pt = (0, 0);
@@ -332,14 +368,15 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> ((i32, i32), (i32, i32
 }
 
 pub fn part1(input: &HashMap<(i32, i32), Tile>) -> i64 {
-    render(input);
-    let (start_pt, end_pt, portals) = find_portals(input);
-    let out = water_filling(input, &portals, &start_pt, &end_pt);
-    println!("start: {:?}", start_pt);
-    println!("end: {:?}", end_pt);
-    println!("portals: {:?}", portals);
-    println!("out: {:?}", out);
-    0
+    let mut map = input.clone();
+    let (start_pt, end_pt, portals) = find_portals(&map);
+
+    // Populate start and stop tiles
+    map.insert(start_pt, Tile::Start);
+    map.insert(end_pt, Tile::End);
+
+    let out = water_filling(&mut map, &portals, &start_pt, &end_pt);
+    out
 }
 
 pub fn part2(input: &HashMap<(i32, i32), Tile>) -> i64 {
