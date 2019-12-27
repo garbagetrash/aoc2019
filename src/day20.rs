@@ -27,6 +27,7 @@ pub enum TileType {
     Portal(String),
 }
 
+#[derive(Debug, Clone)]
 pub struct Tile {
     tile_type: TileType,
     point: (i32, i32),
@@ -51,25 +52,29 @@ impl Tile {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum DoorType {
     Inner,
     Outer,
 }
 
+#[derive(Debug, Clone)]
 pub struct Door {
     name: String,
     level: u32,
     door_type: DoorType,
     point: (i32, i32),
+    exit: (i32, i32),
 }
 
 impl Door {
-    pub fn new(name: String, level: u32, door_type: DoorType, point: (i32, i32)) -> Door {
+    pub fn new(name: String, level: u32, door_type: DoorType, point: (i32, i32), exit: (i32, i32)) -> Door {
         Door {
             name,
             level,
             door_type,
             point,
+            exit,
         }
     }
 }
@@ -107,7 +112,7 @@ pub fn neighboring_grid_points_with_portals(pt: &(i32, i32), portals: &HashMap<(
     vec![npt, spt, ept, wpt]
 }
 
-pub fn load_input(name: &str) -> HashMap<(i32, i32), TileType> {
+pub fn load_input(name: &str) -> HashMap<(i32, i32), Tile> {
     let mut f = File::open(name).unwrap();
     let mut buffer = String::new();
     f.read_to_string(&mut buffer).unwrap();
@@ -119,10 +124,10 @@ pub fn load_input(name: &str) -> HashMap<(i32, i32), TileType> {
         let point = (x, y);
         match c {
             '.' => {
-                output.insert(point, TileType::Floor);
+                output.insert(point, Tile::new(TileType::Floor, point));
             },
             '#' => {
-                output.insert(point, TileType::Wall);
+                output.insert(point, Tile::new(TileType::Wall, point));
             },
             '\n' => {
                 x = -1;
@@ -130,7 +135,7 @@ pub fn load_input(name: &str) -> HashMap<(i32, i32), TileType> {
             },
             ' ' => (),
             _ => {
-                output.insert(point, TileType::Portal(c.to_string()));
+                output.insert(point, Tile::new(TileType::Portal(c.to_string()), point));
             },
         }
         x += 1;
@@ -229,7 +234,7 @@ pub fn render(map: &HashMap<(i32, i32), TileType>, offset: &i32) {
     thread::sleep(time::Duration::from_millis(33));
 }
 
-pub fn path(p1: &(i32, i32), p2: &(i32, i32), map: &HashMap<(i32, i32), TileType>) -> Option<u32> {
+pub fn path(p1: &(i32, i32), p2: &(i32, i32), map: &HashMap<(i32, i32), Tile>) -> Option<u32> {
     let mut cloud: HashMap<(i32, i32), u32> = HashMap::new();
     cloud.insert(*p1, 0);
 
@@ -242,7 +247,7 @@ pub fn path(p1: &(i32, i32), p2: &(i32, i32), map: &HashMap<(i32, i32), TileType
                 let new_path = path + 1;
                 if !cloud.contains_key(&new_pt) {
                     if let Some(tile) = map.get(&new_pt) {
-                        match tile {
+                        match tile.tile_type {
                             TileType::Floor => {
                                 new_points.insert(new_pt, new_path);
                             },
@@ -261,7 +266,7 @@ pub fn path(p1: &(i32, i32), p2: &(i32, i32), map: &HashMap<(i32, i32), TileType
         // Insert new_points into cloud
         for (point, path) in &new_points {
             if let Some(tile) = map.get(point) {
-                match tile {
+                match tile.tile_type {
                     TileType::Wall => continue,
                     TileType::Portal(_) => continue,
                     _ => (),
@@ -290,7 +295,7 @@ pub fn path(p1: &(i32, i32), p2: &(i32, i32), map: &HashMap<(i32, i32), TileType
     }
 }
 
-pub fn water_filling(map: &mut HashMap<(i32, i32), TileType>, portals: &HashMap<(i32, i32), (i32, i32)>, start_pt: &(i32, i32), end_pt: &(i32, i32)) -> i64 {
+pub fn water_filling(map: &mut HashMap<(i32, i32), Tile>, portals: &HashMap<(i32, i32), (i32, i32)>, start_pt: &(i32, i32), end_pt: &(i32, i32)) -> i64 {
 
     //let (tx, handle) = start_render_thread();
 
@@ -315,14 +320,14 @@ pub fn water_filling(map: &mut HashMap<(i32, i32), TileType>, portals: &HashMap<
         // Insert new_points into cloud
         for (point, path) in &new_points {
             if let Some(tile) = &map.get(point) {
-                match tile {
+                match tile.tile_type {
                     TileType::Wall => continue,
                     TileType::Portal(_) => continue,
                     _ => (),
                 }
             }
 
-            map.insert(*point, TileType::Water);
+            map.insert(*point, Tile::new(TileType::Water, *point));
 
             if let Some(existing_path) = cloud.get_mut(point) {
                 if path.len() < existing_path.len() {
@@ -352,24 +357,24 @@ pub fn water_filling(map: &mut HashMap<(i32, i32), TileType>, portals: &HashMap<
     t
 }
 
-pub fn find_portals(input: &HashMap<(i32, i32), TileType>) -> ((i32, i32), (i32, i32), HashMap<(i32, i32), (i32, i32)>, HashMap<String, (i32, i32)>) {
+pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> ((i32, i32), (i32, i32), HashMap<(i32, i32), (i32, i32)>, HashMap<String, (i32, i32)>) {
     let mut portals: HashMap<String, Vec<((i32, i32), (i32, i32))>> = HashMap::new();
     for (pt, tile) in input {
-        match tile {
+        match &tile.tile_type {
             TileType::Portal(c) => {
                 let right_pt = (pt.0 + 1, pt.1);
                 let lower_pt = (pt.0, pt.1 + 1);
                 if let Some(tile) = input.get(&right_pt) {
-                    match tile {
+                    match &tile.tile_type {
                         TileType::Portal(c2) => {
                             let rrpt = (pt.0 + 2, pt.1);
                             let lrpt = (pt.0 - 1, pt.1);
 
                             // This case is when we are X_.
                             if let Some(tile2) = input.get(&rrpt) {
-                                match tile2 {
+                                match tile2.tile_type {
                                     TileType::Floor => {
-                                        let s = vec![(*c).clone(), (*c2).clone()].join("");
+                                        let s = vec![c.clone(), c2.clone()].join("");
                                         if let Some(v) = portals.get_mut(&s) {
                                             v.push((right_pt, rrpt));
                                         } else {
@@ -382,9 +387,9 @@ pub fn find_portals(input: &HashMap<(i32, i32), TileType>) -> ((i32, i32), (i32,
 
                             // This case is when we are .X_
                             if let Some(tile2) = input.get(&lrpt) {
-                                match tile2 {
+                                match tile2.tile_type {
                                     TileType::Floor => {
-                                        let s = vec![(*c).clone(), (*c2).clone()].join("");
+                                        let s = vec![c.clone(), c2.clone()].join("");
                                         if let Some(v) = portals.get_mut(&s) {
                                             v.push((*pt, lrpt));
                                         } else {
@@ -399,7 +404,7 @@ pub fn find_portals(input: &HashMap<(i32, i32), TileType>) -> ((i32, i32), (i32,
                     }
                 }
                 if let Some(tile) = input.get(&lower_pt) {
-                    match tile {
+                    match &tile.tile_type {
                         TileType::Portal(c2) => {
                             let llpt = (pt.0, pt.1 + 2);
                             let ulpt = (pt.0, pt.1 - 1);
@@ -408,9 +413,9 @@ pub fn find_portals(input: &HashMap<(i32, i32), TileType>) -> ((i32, i32), (i32,
                             //                          _
                             //                          .
                             if let Some(tile2) = input.get(&llpt) {
-                                match tile2 {
+                                match tile2.tile_type {
                                     TileType::Floor => {
-                                        let s = vec![(*c).clone(), (*c2).clone()].join("");
+                                        let s = vec![c.clone(), c2.clone()].join("");
                                         if let Some(v) = portals.get_mut(&s) {
                                             v.push((lower_pt, llpt));
                                         } else {
@@ -425,9 +430,9 @@ pub fn find_portals(input: &HashMap<(i32, i32), TileType>) -> ((i32, i32), (i32,
                             //                          X
                             //                          _
                             if let Some(tile2) = input.get(&ulpt) {
-                                match tile2 {
+                                match tile2.tile_type {
                                     TileType::Floor => {
-                                        let s = vec![(*c).clone(), (*c2).clone()].join("");
+                                        let s = vec![c.clone(), c2.clone()].join("");
                                         if let Some(v) = portals.get_mut(&s) {
                                             v.push((*pt, ulpt));
                                         } else {
@@ -472,7 +477,7 @@ pub fn find_portals(input: &HashMap<(i32, i32), TileType>) -> ((i32, i32), (i32,
     (start_pt, end_pt, output, portal_names)
 }
 
-pub fn explore_segments(map: &HashMap<(i32, i32), TileType>, name_map: &HashMap<String, (i32, i32)>, start_pt: &(i32, i32), end_pt: &(i32, i32)) -> HashMap<String, HashMap<String, u32>> {
+pub fn explore_segments(map: &HashMap<(i32, i32), Tile>, name_map: &HashMap<String, (i32, i32)>, start_pt: &(i32, i32), end_pt: &(i32, i32)) -> HashMap<String, HashMap<String, u32>> {
 
     let mut output: HashMap<String, HashMap<String, u32>> = HashMap::new();
 
@@ -504,13 +509,13 @@ pub fn explore_segments(map: &HashMap<(i32, i32), TileType>, name_map: &HashMap<
     output
 }
 
-pub fn part1(input: &HashMap<(i32, i32), TileType>) -> i64 {
-    let mut map = input.clone();
+pub fn part1(input: &HashMap<(i32, i32), Tile>) -> i64 {
+    let mut map: HashMap<(i32, i32), Tile> = (*input).clone();
     let (start_pt, end_pt, portals, _names) = find_portals(&map);
 
     // Populate start and stop tiles
-    map.insert(start_pt, TileType::Start);
-    map.insert(end_pt, TileType::End);
+    map.insert(start_pt, Tile::new(TileType::Start, start_pt));
+    map.insert(end_pt, Tile::new(TileType::End, end_pt));
 
     let out = water_filling(&mut map, &portals, &start_pt, &end_pt);
     out
@@ -537,13 +542,13 @@ pub fn part1(input: &HashMap<(i32, i32), TileType>) -> i64 {
 // of each of the states (portals) and the shortest path from the start to that
 // state.  Once we've gotten to all of them we simply look at the path to the
 // end portal. (Something sort of like the Viterbi Algorithm?)
-pub fn part2(input: &HashMap<(i32, i32), TileType>) -> u32 {
+pub fn part2(input: &HashMap<(i32, i32), Tile>) -> u32 {
     let mut map = input.clone();
     let (start_pt, end_pt, _portals, names) = find_portals(&map);
 
     // Populate start and stop tiles
-    map.insert(start_pt, TileType::Start);
-    map.insert(end_pt, TileType::End);
+    map.insert(start_pt, Tile::new(TileType::Start, start_pt));
+    map.insert(end_pt, Tile::new(TileType::End, end_pt));
 
     let seg_map = explore_segments(&mut map, &names, &start_pt, &end_pt);
     println!("Finished exploring");
