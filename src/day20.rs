@@ -88,17 +88,35 @@ pub fn start_render_thread() -> (mpsc::Sender<Option<HashMap<(i32, i32), Tile>>>
 
     let handle: thread::JoinHandle<()> = thread::spawn(move || {
 
-        initscr();
+        let window = initscr();
         start_color();
         init_pair(1, COLOR_WHITE, COLOR_BLACK);
         init_pair(2, COLOR_BLUE, COLOR_BLACK);
-        init_pair(3, COLOR_GRAY, COLOR_BLACK);
+        init_pair(3, COLOR_GREEN, COLOR_BLACK);
+        init_pair(4, COLOR_RED, COLOR_BLACK);
 
         curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
+        noecho();
+        nodelay(window, true);
+        keypad(stdscr(), true);
+
+        // Offset for display height
+        let mut offset = 0;
 
         loop {
+            // Handle input if button pressed (non-blocking getch call)
+            let c = getch();
+            if c == KEY_DOWN {
+                offset += 1;
+                clear();
+            } else if c == KEY_UP {
+                offset -= 1;
+                clear();
+            }
+
+            // Handle message if one available
             if let Some(map) = rx.recv().unwrap() {
-                render(&map);
+                render(&map, &offset);
             } else {
                 break;
             }
@@ -114,23 +132,30 @@ pub fn start_render_thread() -> (mpsc::Sender<Option<HashMap<(i32, i32), Tile>>>
 }
 
 #[allow(dead_code)]
-pub fn render(map: &HashMap<(i32, i32), Tile>) {
+pub fn render(map: &HashMap<(i32, i32), Tile>, offset: &i32) {
     let mut min_x = 0;
-    let mut min_y = 0;
-    for (x, y) in map.keys() {
+    let min_y = offset;
+    for (x, _y) in map.keys() {
         if *x < min_x {
             min_x = *x;
-        }
-        if *y < min_y {
-            min_y = *y;
         }
     }
 
     for ((x, y), tile) in map {
         attron(COLOR_PAIR(1));
         match tile {
-            Tile::Start => mvprintw(y - min_y, x - min_x, "S"),
-            Tile::End => mvprintw(y - min_y, x - min_x, "E"),
+            Tile::Start => {
+                attron(COLOR_PAIR(3));
+                let out = mvprintw(y - min_y, x - min_x, "S");
+                attroff(COLOR_PAIR(3));
+                out
+            },
+            Tile::End => {
+                attron(COLOR_PAIR(4));
+                let out = mvprintw(y - min_y, x - min_x, "E");
+                attron(COLOR_PAIR(4));
+                out
+            },
             Tile::Floor => mvprintw(y - min_y, x - min_x, "."),
             Tile::Water => {
                 attron(COLOR_PAIR(2));
@@ -235,7 +260,7 @@ pub fn water_filling(map: &mut HashMap<(i32, i32), Tile>, portals: &HashMap<(i32
             }
         }
 
-        tx.send(Some(map.clone()));
+        tx.send(Some(map.clone())).unwrap();
 
         // See if end_pt is in cloud yet
         let mut done = false;
@@ -244,8 +269,8 @@ pub fn water_filling(map: &mut HashMap<(i32, i32), Tile>, portals: &HashMap<(i32
         }
 
         if done {
-            tx.send(None);
-            handle.join();
+            tx.send(None).unwrap();
+            handle.join().unwrap();
             break;
         }
 
@@ -367,6 +392,8 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> ((i32, i32), (i32, i32
     (start_pt, end_pt, output)
 }
 
+
+
 pub fn part1(input: &HashMap<(i32, i32), Tile>) -> i64 {
     let mut map = input.clone();
     let (start_pt, end_pt, portals) = find_portals(&map);
@@ -379,6 +406,35 @@ pub fn part1(input: &HashMap<(i32, i32), Tile>) -> i64 {
     out
 }
 
+// For this part most likely water filling alone won't be fast enough.
+//
+// I'm thinking of using a map that is keyed off of the portal entrances, and
+// the value would be a set of the portals that can be reached from the keyed
+// portal, along with a number of steps to each of them in a tuple.  Like this:
+//
+//          Keyed Portal        (Other Portal, Dist. to Other)
+// HashMap<(String, Char), HashSet<((String, Char), u32)>>
+//
+// The portals are represented by a tuple of the portal string, and then a char
+// designating either that it is the inner or the outer edge portal.
+//
+// When creating the sets we need to take care that the start and end are only
+// counted as portals on the outermost (1st) level of the maze.
+//
+// We can use water_filling with modified rules (don't traverse portals) to
+// distances between connected portals, and which portals are connected at all.
+// Then we create our dataset and traverse the graph it creates, keeping track
+// of each of the states (portals) and the shortest path from the start to that
+// state.  Once we've gotten to all of them we simply look at the path to the
+// end portal. (Something sort of like the Viterbi Algorithm?)
 pub fn part2(input: &HashMap<(i32, i32), Tile>) -> i64 {
-    0
+    let mut map = input.clone();
+    let (start_pt, end_pt, portals) = find_portals(&map);
+
+    // Populate start and stop tiles
+    map.insert(start_pt, Tile::Start);
+    map.insert(end_pt, Tile::End);
+
+    let out = water_filling(&mut map, &portals, &start_pt, &end_pt);
+    out
 }
