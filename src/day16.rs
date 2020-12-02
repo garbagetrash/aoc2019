@@ -14,98 +14,118 @@ pub fn load_input(name: &str) -> Vec<i32> {
     output
 }
 
-#[derive(Clone)]
-struct BasePattern {
-    offset: usize,
-    length: usize,
+pub struct PosPattern {
+    rows: usize,
+    row: usize,
     idx: usize,
+    ixmod: usize,
+    check: usize,
 }
 
-impl BasePattern {
-    fn new(offset: usize, length: usize) -> BasePattern {
-        BasePattern { offset, length, idx: 1 }
+impl PosPattern {
+    pub fn new(rows: usize, row: usize) -> PosPattern {
+        PosPattern {
+            rows,
+            row,
+            idx: row,
+            ixmod: 4 * (row + 1),
+            check: 2 * (row + 1) - 1,
+        }
     }
 }
 
-impl Iterator for BasePattern {
-    type Item = i32;
-
+impl Iterator for PosPattern {
+    type Item = usize;
     fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.idx >= self.rows {
+                break;
+            }
 
-        // If we're done, then we're done
-        if self.idx >= self.length + 1 {
-            return None;
-        }
-
-        let ix = self.idx % (self.offset * 4);
-
-        let mut output = Some(0);
-        if ix < self.offset {
-            output = Some(0)
-        } else if ix < 2 * self.offset {
-            output = Some(1)
-        } else if ix < 3 * self.offset {
-            output = Some(0)
-        } else {
-            output = Some(-1);
-        }
-
-        self.idx += 1;
-        output
-    }
-}
-
-pub fn build_pos_idx_table(length: usize) -> Vec<Vec<usize>> {
-    let mut output = vec![];
-    for i in 1..length {
-        let mut line = vec![];
-        for j in i..length {
-            let ix = j % (i * 4);
-            if ix >= i && ix < 2 * i {
-                line.push(j);
+            let ix = self.idx % self.ixmod;
+            if ix >= self.row && ix < self.check {
+                self.idx += 1;
+                return Some(self.idx - 1);
+            } else {
+                self.idx += self.ixmod;
             }
         }
-        output.push(line);
-    }
 
-    output
+        None
+    }
 }
 
-pub fn build_neg_idx_table(length: usize) -> Vec<Vec<usize>> {
-    let mut output = vec![];
-    for i in 1..length {
-        let mut line = vec![];
-        for j in i..length {
-            let ix = j % (i * 4);
-            if ix >= 3 * i {
-                line.push(j);
+pub struct NegPattern {
+    rows: usize,
+    row: usize,
+    idx: usize,
+    ixmod: usize,
+    check: usize,
+}
+
+impl NegPattern {
+    pub fn new(rows: usize, row: usize) -> NegPattern {
+        NegPattern {
+            rows,
+            row,
+            idx: row,
+            ixmod: 4 * (row + 1),
+            check: 3 * (row + 1),
+        }
+    }
+}
+
+impl Iterator for NegPattern {
+    type Item = usize;
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.idx >= self.rows {
+                break;
+            }
+
+            let ix = (self.idx + 1) % self.ixmod;
+            if ix >= self.check {
+                self.idx += 1;
+                return Some(self.idx - 1);
+            } else {
+                self.idx += self.ixmod;
             }
         }
-        output.push(line);
-    }
 
-    output
+        None
+    }
 }
 
-pub fn phase2(input: &Vec<i32>, n_inputs: usize) -> Vec<i32> {
-
+pub fn phase2(
+    input: &Vec<i32>,
+    size: usize,
+    offset: usize,
+) -> Vec<i32> {
     let input_len = input.len();
+    println!("input_len: {}", input_len);
 
-    // Build index tables
-    let ptable = build_pos_idx_table(input_len * n_inputs);
-    let ntable = build_neg_idx_table(input_len * n_inputs);
+    let mut output = Vec::with_capacity(input_len);
+    for i in offset..size {
 
-    let mut output = Vec::with_capacity(n_inputs * input_len);
+        if (i % 100 == 0) {
+            println!("{}", i);
+        }
 
-    for (pidxs, nidxs) in ptable.iter().zip(ntable) {
+        // Prepare some iterators to grab the indexes we need
+        let pidxs = PosPattern::new(size, i);
+        let nidxs = NegPattern::new(size, i);
+
+        // Sum the values at the indexes
         let mut result = 0;
-        for i in pidxs {
-            result += input[i % input_len];
+        for p in pidxs {
+            result += input[p - offset];
         }
-        for i in nidxs {
-            result -= input[i % input_len];
+        for n in nidxs {
+            result -= input[n - offset];
         }
+
         result = result.abs() % 10;
+
         output.push(result);
     }
 
@@ -136,15 +156,10 @@ pub fn phase(input: &Vec<i32>, n_inputs: usize) -> Vec<i32> {
 
 pub fn part1(input: &Vec<i32>) -> String {
     let mut step = input.clone();
-    let mut step2 = input.clone();
 
     for _ in 0..100 {
         step = phase(&step, 1);
-        step2 = phase2(&step2, 1);
     }
-
-    println!("{:?}", &step[0..10]);
-    println!("{:?}", &step2[0..10]);
 
     step.iter()
         .take(8)
@@ -154,14 +169,28 @@ pub fn part1(input: &Vec<i32>) -> String {
 }
 
 pub fn part2(input: &Vec<i32>) -> String {
-    let mut step = input.clone();
-    println!("input.len(): {}", input.len());
 
-    step = phase(&step, 2);
+    let offset: usize = input
+        .iter()
+        .take(7)
+        .map(|x| x.to_string())
+        .collect::<Vec<_>>()
+        .join("")
+        .parse()
+        .unwrap();
 
-    for i in 1..100 {
-        step = phase(&step, 1);
+    let n_inputs = 10000;
+    let size = input.len() * n_inputs;
+    let mut step: Vec<i32> = input.iter().cycle().take(size).map(|x| *x).collect();
+    println!("{:?}", &step[..10]);
+    step = step[offset..].to_vec();
+
+    for i in 0..100 {
+        println!("i: {}", i);
+        step = phase2(&step, size, offset);
+        println!("{:?}", &step[..10]);
     }
+
     step.iter()
         .take(8)
         .map(|c| c.to_string())
@@ -175,10 +204,6 @@ mod test {
 
     #[test]
     fn test_part1() {
-        let bp = BasePattern::new(5, 21);
-        for i in bp {
-            println!("{}", i);
-        }
         assert_eq!(0, 1);
     }
 

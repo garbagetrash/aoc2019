@@ -33,7 +33,6 @@ pub enum Tile {
 
 #[allow(dead_code)]
 pub fn render(map: &HashMap<(i32, i32), Tile>) {
-
     let mut min_x = 0;
     let mut min_y = 0;
 

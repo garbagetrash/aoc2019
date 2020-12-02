@@ -3,9 +3,9 @@ extern crate ncurses;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
-use std::{thread, time};
-use std::thread::JoinHandle;
 use std::sync::mpsc;
+use std::thread::JoinHandle;
+use std::{thread, time};
 
 use ncurses::*;
 
@@ -35,10 +35,7 @@ pub struct Tile {
 
 impl Tile {
     pub fn new(tile_type: TileType, point: (i32, i32)) -> Tile {
-        Tile {
-            tile_type,
-            point,
-        }
+        Tile { tile_type, point }
     }
 
     pub fn neighboring_tiles(&self) -> Vec<(i32, i32, Move)> {
@@ -68,7 +65,13 @@ pub struct Door {
 }
 
 impl Door {
-    pub fn new(name: String, level: u32, door_type: DoorType, point: (i32, i32), exit: (i32, i32)) -> Door {
+    pub fn new(
+        name: String,
+        level: u32,
+        door_type: DoorType,
+        point: (i32, i32),
+        exit: (i32, i32),
+    ) -> Door {
         Door {
             name,
             level,
@@ -88,8 +91,10 @@ pub fn neighboring_grid_points(pt: &(i32, i32)) -> Vec<(i32, i32, Move)> {
     vec![npt, spt, ept, wpt]
 }
 
-
-pub fn neighboring_grid_points_with_portals(pt: &(i32, i32), portals: &HashMap<(i32, i32), (i32, i32)>) -> Vec<(i32, i32, Move)> {
+pub fn neighboring_grid_points_with_portals(
+    pt: &(i32, i32),
+    portals: &HashMap<(i32, i32), (i32, i32)>,
+) -> Vec<(i32, i32, Move)> {
     let mut npt = (pt.0, pt.1 - 1, Move::North);
     let mut spt = (pt.0, pt.1 + 1, Move::South);
     let mut ept = (pt.0 + 1, pt.1, Move::East);
@@ -125,18 +130,21 @@ pub fn load_input(name: &str) -> HashMap<(i32, i32), Tile> {
         match c {
             '.' => {
                 output.insert(point, Tile::new(TileType::Floor, point));
-            },
+            }
             '#' => {
                 output.insert(point, Tile::new(TileType::Wall, point));
-            },
+            }
             '\n' => {
                 x = -1;
                 y += 1;
-            },
+            }
             ' ' => (),
             _ => {
-                output.insert(point, Tile::new(TileType::Portal(c.to_string()), point));
-            },
+                output.insert(
+                    point,
+                    Tile::new(TileType::Portal(c.to_string()), point),
+                );
+            }
         }
         x += 1;
     }
@@ -144,11 +152,13 @@ pub fn load_input(name: &str) -> HashMap<(i32, i32), Tile> {
     output
 }
 
-pub fn start_render_thread() -> (mpsc::Sender<Option<HashMap<(i32, i32), TileType>>>, JoinHandle<()>) {
+pub fn start_render_thread() -> (
+    mpsc::Sender<Option<HashMap<(i32, i32), TileType>>>,
+    JoinHandle<()>,
+) {
     let (tx, rx) = mpsc::channel();
 
     let handle: thread::JoinHandle<()> = thread::spawn(move || {
-
         let window = initscr();
         start_color();
         init_pair(1, COLOR_WHITE, COLOR_BLACK);
@@ -210,22 +220,24 @@ pub fn render(map: &HashMap<(i32, i32), TileType>, offset: &i32) {
                 let out = mvprintw(y - min_y, x - min_x, "S");
                 attroff(COLOR_PAIR(3));
                 out
-            },
+            }
             TileType::End => {
                 attron(COLOR_PAIR(4));
                 let out = mvprintw(y - min_y, x - min_x, "E");
                 attron(COLOR_PAIR(4));
                 out
-            },
+            }
             TileType::Floor => mvprintw(y - min_y, x - min_x, "."),
             TileType::Water => {
                 attron(COLOR_PAIR(2));
                 let out = mvprintw(y - min_y, x - min_x, "~");
                 attroff(COLOR_PAIR(2));
                 out
-            },
+            }
             TileType::Wall => mvprintw(y - min_y, x - min_x, "#"),
-            TileType::Portal(c) => mvprintw(y - min_y, x - min_x, &c.to_string()),
+            TileType::Portal(c) => {
+                mvprintw(y - min_y, x - min_x, &c.to_string())
+            }
         };
         attroff(COLOR_PAIR(1));
     }
@@ -234,7 +246,11 @@ pub fn render(map: &HashMap<(i32, i32), TileType>, offset: &i32) {
     thread::sleep(time::Duration::from_millis(33));
 }
 
-pub fn path(p1: &(i32, i32), p2: &(i32, i32), map: &HashMap<(i32, i32), Tile>) -> Option<u32> {
+pub fn path(
+    p1: &(i32, i32),
+    p2: &(i32, i32),
+    map: &HashMap<(i32, i32), Tile>,
+) -> Option<u32> {
     let mut cloud: HashMap<(i32, i32), u32> = HashMap::new();
     cloud.insert(*p1, 0);
 
@@ -250,7 +266,7 @@ pub fn path(p1: &(i32, i32), p2: &(i32, i32), map: &HashMap<(i32, i32), Tile>) -
                         match tile.tile_type {
                             TileType::Floor => {
                                 new_points.insert(new_pt, new_path);
-                            },
+                            }
                             _ => (),
                         }
                     }
@@ -295,8 +311,12 @@ pub fn path(p1: &(i32, i32), p2: &(i32, i32), map: &HashMap<(i32, i32), Tile>) -
     }
 }
 
-pub fn water_filling(map: &mut HashMap<(i32, i32), Tile>, portals: &HashMap<(i32, i32), (i32, i32)>, start_pt: &(i32, i32), end_pt: &(i32, i32)) -> i64 {
-
+pub fn water_filling(
+    map: &mut HashMap<(i32, i32), Tile>,
+    portals: &HashMap<(i32, i32), (i32, i32)>,
+    start_pt: &(i32, i32),
+    end_pt: &(i32, i32),
+) -> i64 {
     //let (tx, handle) = start_render_thread();
 
     let mut cloud: HashMap<(i32, i32), Vec<Move>> = HashMap::new();
@@ -357,8 +377,16 @@ pub fn water_filling(map: &mut HashMap<(i32, i32), Tile>, portals: &HashMap<(i32
     t
 }
 
-pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> ((i32, i32), (i32, i32), HashMap<(i32, i32), (i32, i32)>, HashMap<String, (i32, i32)>) {
-    let mut portals: HashMap<String, Vec<((i32, i32), (i32, i32))>> = HashMap::new();
+pub fn find_portals(
+    input: &HashMap<(i32, i32), Tile>,
+) -> (
+    (i32, i32),
+    (i32, i32),
+    HashMap<(i32, i32), (i32, i32)>,
+    HashMap<String, (i32, i32)>,
+) {
+    let mut portals: HashMap<String, Vec<((i32, i32), (i32, i32))>> =
+        HashMap::new();
     for (pt, tile) in input {
         match &tile.tile_type {
             TileType::Portal(c) => {
@@ -374,13 +402,17 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> ((i32, i32), (i32, i32
                             if let Some(tile2) = input.get(&rrpt) {
                                 match tile2.tile_type {
                                     TileType::Floor => {
-                                        let s = vec![c.clone(), c2.clone()].join("");
+                                        let s = vec![c.clone(), c2.clone()]
+                                            .join("");
                                         if let Some(v) = portals.get_mut(&s) {
                                             v.push((right_pt, rrpt));
                                         } else {
-                                            portals.insert(s, vec![(right_pt, rrpt)]);
+                                            portals.insert(
+                                                s,
+                                                vec![(right_pt, rrpt)],
+                                            );
                                         }
-                                    },
+                                    }
                                     _ => (),
                                 }
                             }
@@ -389,18 +421,20 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> ((i32, i32), (i32, i32
                             if let Some(tile2) = input.get(&lrpt) {
                                 match tile2.tile_type {
                                     TileType::Floor => {
-                                        let s = vec![c.clone(), c2.clone()].join("");
+                                        let s = vec![c.clone(), c2.clone()]
+                                            .join("");
                                         if let Some(v) = portals.get_mut(&s) {
                                             v.push((*pt, lrpt));
                                         } else {
-                                            portals.insert(s, vec![(*pt, lrpt)]);
+                                            portals
+                                                .insert(s, vec![(*pt, lrpt)]);
                                         }
-                                    },
+                                    }
                                     _ => (),
                                 }
                             }
-                        },
-                        _ => {},
+                        }
+                        _ => {}
                     }
                 }
                 if let Some(tile) = input.get(&lower_pt) {
@@ -415,13 +449,17 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> ((i32, i32), (i32, i32
                             if let Some(tile2) = input.get(&llpt) {
                                 match tile2.tile_type {
                                     TileType::Floor => {
-                                        let s = vec![c.clone(), c2.clone()].join("");
+                                        let s = vec![c.clone(), c2.clone()]
+                                            .join("");
                                         if let Some(v) = portals.get_mut(&s) {
                                             v.push((lower_pt, llpt));
                                         } else {
-                                            portals.insert(s, vec![(lower_pt, llpt)]);
+                                            portals.insert(
+                                                s,
+                                                vec![(lower_pt, llpt)],
+                                            );
                                         }
-                                    },
+                                    }
                                     _ => (),
                                 }
                             }
@@ -432,21 +470,23 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> ((i32, i32), (i32, i32
                             if let Some(tile2) = input.get(&ulpt) {
                                 match tile2.tile_type {
                                     TileType::Floor => {
-                                        let s = vec![c.clone(), c2.clone()].join("");
+                                        let s = vec![c.clone(), c2.clone()]
+                                            .join("");
                                         if let Some(v) = portals.get_mut(&s) {
                                             v.push((*pt, ulpt));
                                         } else {
-                                            portals.insert(s, vec![(*pt, ulpt)]);
+                                            portals
+                                                .insert(s, vec![(*pt, ulpt)]);
                                         }
-                                    },
+                                    }
                                     _ => (),
                                 }
                             }
-                        },
-                        _ => {},
+                        }
+                        _ => {}
                     }
                 }
-            },
+            }
             _ => (),
         }
     }
@@ -477,8 +517,12 @@ pub fn find_portals(input: &HashMap<(i32, i32), Tile>) -> ((i32, i32), (i32, i32
     (start_pt, end_pt, output, portal_names)
 }
 
-pub fn explore_segments(map: &HashMap<(i32, i32), Tile>, name_map: &HashMap<String, (i32, i32)>, start_pt: &(i32, i32), end_pt: &(i32, i32)) -> HashMap<String, HashMap<String, u32>> {
-
+pub fn explore_segments(
+    map: &HashMap<(i32, i32), Tile>,
+    name_map: &HashMap<String, (i32, i32)>,
+    start_pt: &(i32, i32),
+    end_pt: &(i32, i32),
+) -> HashMap<String, HashMap<String, u32>> {
     let mut output: HashMap<String, HashMap<String, u32>> = HashMap::new();
 
     for name1 in name_map.keys() {
@@ -488,7 +532,6 @@ pub fn explore_segments(map: &HashMap<(i32, i32), Tile>, name_map: &HashMap<Stri
             let point2 = name_map.get(name2).unwrap();
 
             if let Some(dist) = path(&point1, &point2, map) {
-
                 // If some path found from point1 to point2 sans portals
                 if let Some(valuemap) = output.get_mut(name1) {
                     valuemap.insert((*name2).clone(), dist);
@@ -584,7 +627,8 @@ pub fn part2(input: &HashMap<(i32, i32), Tile>) -> u32 {
 
             let other = format!("{}{}", preamble, other.to_string());
             println!("other: {}", other);
-            let new_dests_map = seg_map.get(&other).expect("seg_map should have other");
+            let new_dests_map =
+                seg_map.get(&other).expect("seg_map should have other");
 
             for (new_dest, new_dist) in new_dests_map {
                 println!("new_dests_map: {:?}", new_dests_map);
@@ -601,5 +645,7 @@ pub fn part2(input: &HashMap<(i32, i32), Tile>) -> u32 {
     }
 
     println!("{:?}", dist_map);
-    *dist_map.get("ZZ").expect("Final result should be in dist_map")
+    *dist_map
+        .get("ZZ")
+        .expect("Final result should be in dist_map")
 }
