@@ -2,6 +2,7 @@ extern crate regex;
 
 use std::fs::File;
 use std::io::prelude::*;
+use rayon::prelude::*;
 
 pub fn load_input(name: &str) -> Vec<i32> {
     let mut f = File::open(name).unwrap();
@@ -105,29 +106,18 @@ pub fn phase2(
     println!("input_len: {}", input_len);
 
     let mut output = Vec::with_capacity(input_len);
-    for i in offset..size {
-
-        if (i % 100 == 0) {
-            println!("{}", i);
-        }
+    output = (offset..size).collect::<Vec<usize>>().par_iter().map(|i| {
 
         // Prepare some iterators to grab the indexes we need
-        let pidxs = PosPattern::new(size, i);
-        let nidxs = NegPattern::new(size, i);
+        let pidxs = PosPattern::new(size, *i);
+        let nidxs = NegPattern::new(size, *i);
 
         // Sum the values at the indexes
-        let mut result = 0;
-        for p in pidxs {
-            result += input[p - offset];
-        }
-        for n in nidxs {
-            result -= input[n - offset];
-        }
+        let r1: i32 = pidxs.map(|i|  input[i - offset]).sum();
+        let r2: i32 = nidxs.map(|i| -input[i - offset]).sum();
 
-        result = result.abs() % 10;
-
-        output.push(result);
-    }
+        (r1 + r2).abs() % 10
+    }).collect();
 
     output
 }
